@@ -162,16 +162,6 @@ const Sidebar = ({
           }
         });
 
-        // Function to check if a directory contains binary files
-        const hasBinaryFiles = (files: TreeNode[]): boolean => {
-          return files.some((node) => {
-            if (node.type === 'file') {
-              return node.fileData?.isBinary || false;
-            }
-            return node.children ? hasBinaryFiles(node.children) : false;
-          });
-        };
-
         // Convert nested object structure to TreeNode array format
         const convertToTreeNodes = (node: Record<string, any>, level = 0): TreeNode[] => {
           return Object.keys(node).map((key) => {
@@ -183,8 +173,14 @@ const Sidebar = ({
               const isExpanded =
                 expandedNodes[item.id] !== undefined ? expandedNodes[item.id] : true;
 
-              // Check if this directory contains any binary files
-              const hasBinaries = hasBinaryFiles(children);
+              // Bottom-up binary detection: children are already processed, so
+              // a directory has binaries if any child file is binary or any
+              // child directory has binaries (O(n) instead of per-subtree walks).
+              const hasBinaries = children.some(
+                (child) =>
+                  (child.type === 'file' && child.fileData?.isBinary) ||
+                  (child.type === 'directory' && child.hasBinaries)
+              );
 
               return {
                 ...item,
@@ -230,10 +226,15 @@ const Sidebar = ({
       }
     };
 
-    // Use a timeout to not block UI
+    // Use a timeout to not block UI.
+    // NOTE: expandedNodes is intentionally NOT a dependency (plan 024):
+    // rebuilding the whole tree on every expand/collapse is the cost this
+    // avoids. The build reads the latest expandedNodes from its fresh closure
+    // (the effect only re-runs when allFiles/selectedFolder change), and the
+    // applyExpandedState effect below handles live toggle updates.
     const buildTreeTimeoutId = setTimeout(buildTree, 0);
     return () => clearTimeout(buildTreeTimeoutId);
-  }, [allFiles, selectedFolder, expandedNodes]);
+  }, [allFiles, selectedFolder]);
 
   // Apply expanded state as a separate operation when expandedNodes change
   useEffect(() => {
