@@ -47,7 +47,7 @@ async function getUpdateStatus() {
       latestVersion: null,
       releaseUrl: null,
       error: error.message || 'Unknown error during update check execution',
-      debugLogs: error.stack || '',
+      debugLogs: '',
       isLoading: false,
     };
     return errorResult;

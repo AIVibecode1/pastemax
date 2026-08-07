@@ -62,10 +62,10 @@ async function checkForUpdates() {
         });
 
         res.on('end', () => {
-          debugLogs.push('GitHub API Raw Response: ' + rawData);
           try {
             const response = JSON.parse(rawData);
-            debugLogs.push('GitHub API Parsed Response: ' + JSON.stringify(response));
+            // Field-selective log only: never ship raw API bodies to the renderer.
+            debugLogs.push('GitHub API latest tag: ' + response.tag_name);
             if (!response.tag_name || !response.html_url) {
               reject(new Error('GitHub response missing required fields'));
               return;

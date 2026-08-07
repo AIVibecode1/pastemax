@@ -128,7 +128,7 @@ ipcMain.handle('check-for-updates', async (event) => {
       isUpdateAvailable: false,
       currentVersion: app.getVersion(),
       error: error.message || 'An IPC error occurred while processing the update check.',
-      debugLogs: error.stack || null,
+      debugLogs: null,
     };
   }
 });

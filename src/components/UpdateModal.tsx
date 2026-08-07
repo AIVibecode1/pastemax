@@ -53,29 +53,6 @@ const UpdateModal = ({ isOpen, onClose, updateStatus }: UpdateModalProps) => {
           ) : updateStatus.error ? (
             <>
               <p className="update-message update-message-error">Error: {updateStatus.error}</p>
-              {updateStatus.debugLogs && (
-                <details style={{ marginTop: 8 }}>
-                  <summary
-                    style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13 }}
-                  >
-                    Show debug logs
-                  </summary>
-                  <pre
-                    style={{
-                      fontSize: 12,
-                      background: 'var(--background-tertiary)',
-                      color: 'var(--text-secondary)',
-                      padding: 8,
-                      borderRadius: 8,
-                      marginTop: 6,
-                      maxHeight: 180,
-                      overflow: 'auto',
-                    }}
-                  >
-                    {updateStatus.debugLogs}
-                  </pre>
-                </details>
-              )}
               {/* Retry button removed */}
             </>
           ) : updateStatus.isUpdateAvailable ? (
