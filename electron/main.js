@@ -566,21 +566,24 @@ function createWindow() {
 
   // Set up window event handlers
   mainWindow.on('closed', async () => {
-    await watcher.shutdownWatcher();
+    // Cancel any in-flight directory scan (also shuts down the watcher) so a
+    // closed window never leaves the app stuck in "busy" until the 5-min timeout.
+    await cancelDirectoryLoading(mainWindow);
     mainWindow = null; // Now allowed since mainWindow is let
   });
 
-  app.on('before-quit', async () => {
-    await watcher.shutdownWatcher();
+  // Note: Electron does not await async event listeners; keep these plain.
+  app.on('before-quit', () => {
+    watcher.shutdownWatcher();
   });
 
   app.on('will-quit', () => {
     resetUpdateSessionState();
   });
 
-  app.on('window-all-closed', async () => {
+  app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-      await watcher.shutdownWatcher();
+      watcher.shutdownWatcher();
       app.quit();
     }
   });
