@@ -31,6 +31,7 @@ const CONCURRENT_DIRS = os.cpus().length * 2; // Increase based on CPU count for
 
 // Cache for file metadata
 const fileCache = new Map(); // Cache for file metadata keyed by normalized file path
+const cacheMtimes = new Map(); // Parallel map: normalized path -> mtimeMs at cache time
 const fileTypeCache = new Map(); // Cache for binary file type detection results
 
 // ======================
@@ -153,7 +154,7 @@ async function processSingleFile(fullPath, rootDir, ignoreFilter, ignoreMode) {
     if (stats.size > MAX_FILE_SIZE) {
       fileData.isSkipped = true;
       fileData.error = 'File too large to process';
-      fileCache.set(normalizePath(fullPath), fileData);
+      cacheFileWithStats(normalizePath(fullPath), fileData, stats);
       return fileData;
     }
 
@@ -161,7 +162,7 @@ async function processSingleFile(fullPath, rootDir, ignoreFilter, ignoreMode) {
     if (binaryExtensions.includes(ext)) {
       fileData.isBinary = true;
       fileData.fileType = ext.toUpperCase();
-      fileCache.set(normalizePath(fullPath), fileData);
+      cacheFileWithStats(normalizePath(fullPath), fileData, stats);
       return fileData;
     }
 
@@ -173,7 +174,7 @@ async function processSingleFile(fullPath, rootDir, ignoreFilter, ignoreMode) {
     fileData.tokenCount = countTokens(content);
 
     // Always update the cache with the latest fileData
-    fileCache.set(normalizePath(fullPath), fileData);
+    cacheFileWithStats(normalizePath(fullPath), fileData, stats);
     console.log(
       `[FileProcessor][processSingleFile] Updated fileCache for: ${normalizePath(fullPath)}`
     );
@@ -410,10 +411,14 @@ async function readFilesRecursively(
           }
 
           if (fileCache.has(fullPathNormalized)) {
-            // console.log('Using cached file data for:', fullPathNormalized); // Can be noisy
-            results.push(fileCache.get(fullPathNormalized));
-            progress.files++;
-            return;
+            const cachedFile = await getCachedFileIfFresh(fullPathNormalized);
+            if (cachedFile) {
+              // console.log('Using cached file data for:', fullPathNormalized); // Can be noisy
+              results.push(cachedFile);
+              progress.files++;
+              return;
+            }
+            // Stale entry was evicted; fall through to a fresh read.
           }
 
           if (isBinaryFile(fullPath)) {
@@ -430,16 +435,18 @@ async function readFilesRecursively(
               fileType: path.extname(fullPath).substring(1).toUpperCase(),
             };
 
+            let binaryFileStats = null;
             try {
               const stats = await fs.promises.stat(fullPath);
               if (!isLoadingDirectory) return;
               fileData.size = stats.size;
+              binaryFileStats = stats;
             } catch (statErr) {
               console.log('Could not get size for binary file:', fullPath, statErr.code);
               // Still add the file entry, just with size 0
             }
 
-            fileCache.set(fullPathNormalized, fileData);
+            cacheFileWithStats(fullPathNormalized, fileData, binaryFileStats);
             results.push(fileData);
             progress.files++;
             return;
@@ -461,7 +468,7 @@ async function readFilesRecursively(
               isSkipped: true,
               error: 'File too large to process',
             };
-            fileCache.set(fullPathNormalized, fileData);
+            cacheFileWithStats(fullPathNormalized, fileData, stats);
             results.push(fileData);
             progress.files++;
             return;
@@ -480,7 +487,7 @@ async function readFilesRecursively(
             isBinary: false,
             isSkipped: false,
           };
-          fileCache.set(fullPathNormalized, fileData);
+          cacheFileWithStats(fullPathNormalized, fileData, stats);
           results.push(fileData);
           progress.files++;
         } catch (err) {
@@ -505,14 +512,16 @@ async function readFilesRecursively(
                       : 'Could not read file',
           };
           // Try to get stats even if read failed
+          let errorFileStats = null;
           try {
             const errorStats = await fs.promises.stat(fullPath);
             errorData.size = errorStats.size;
+            errorFileStats = errorStats;
           } catch (statErr) {
             /* ignore */
           }
 
-          fileCache.set(fullPathNormalized, errorData);
+          cacheFileWithStats(fullPathNormalized, errorData, errorFileStats);
           results.push(errorData); // Add error entry to results
           progress.files++; // Count errors as processed files for progress
           fileProcessingErrors.push({ path: fullPathNormalized, error: err.message });
@@ -569,17 +578,79 @@ async function readFilesRecursively(
   return { results, progress };
 }
 
+/**
+ * Stores an entry in the file cache together with the mtime it was built from,
+ * so later scans can validate freshness instead of trusting the path alone.
+ * @param {string} normPath
+ * @param {object} fileData
+ * @param {number} mtimeMs - fs.Stats.mtimeMs at cache time
+ */
+function setFileCacheEntry(normPath, fileData, mtimeMs) {
+  fileCache.set(normPath, fileData);
+  cacheMtimes.set(normPath, mtimeMs);
+}
+
+/**
+ * Returns the cached FileData for a path ONLY if the file on disk is unchanged
+ * (same mtime and size). On any mismatch or stat failure the entry is evicted
+ * and null is returned so the caller re-reads the file.
+ * @param {string} fullPath - normalized path
+ * @returns {Promise<object|null>}
+ */
+async function getCachedFileIfFresh(fullPath) {
+  const normPath = normalizePath(fullPath);
+  if (!fileCache.has(normPath)) return null;
+  let stats;
+  try {
+    stats = await fs.promises.stat(fullPath);
+  } catch {
+    fileCache.delete(normPath);
+    cacheMtimes.delete(normPath);
+    return null;
+  }
+  const cached = fileCache.get(normPath);
+  if (stats.mtimeMs === cacheMtimes.get(normPath) && stats.size === cached.size) {
+    return cached;
+  }
+  // Stale: evict and fall through to a fresh read.
+  fileCache.delete(normPath);
+  cacheMtimes.delete(normPath);
+  return null;
+}
+
+/**
+ * Store a file entry and record its mtime from the provided stats.
+ * @param {string} fullPath - normalized path
+ * @param {object} fileData
+ * @param {object|null} stats - fs.Stats (mtimeMs recorded); null records 0
+ */
+function cacheFileWithStats(fullPath, fileData, stats) {
+  setFileCacheEntry(fullPath, fileData, stats ? stats.mtimeMs : 0);
+}
+
+// Function to clear all file caches
 function clearFileCaches() {
   fileCache.clear();
+  cacheMtimes.clear();
   fileTypeCache.clear();
   console.log('Cleared all file caches');
 }
 
 // Function to update a single file in the file cache
+// Returns the stat promise so callers/tests can await the mtime refresh.
 function updateFileCacheEntry(filePath, fileData) {
   const normPath = normalizePath(filePath);
-  fileCache.set(normPath, fileData);
+  // Refresh the mtime so watcher updates stay valid for later scans.
+  const statPromise = fs.promises
+    .stat(filePath)
+    .then((stats) => {
+      setFileCacheEntry(normPath, fileData, stats.mtimeMs);
+    })
+    .catch(() => {
+      setFileCacheEntry(normPath, fileData, 0); // unknown mtime -> next scan re-reads
+    });
   console.log(`[FileProcessor] Updated fileCache for: ${normPath}`);
+  return statPromise;
 }
 
 // Function to remove a single file from the file cache
@@ -587,6 +658,7 @@ function removeFileCacheEntry(filePath) {
   const normPath = normalizePath(filePath);
   if (fileCache.has(normPath)) {
     fileCache.delete(normPath);
+    cacheMtimes.delete(normPath);
     console.log(`[FileProcessor] Removed from fileCache: ${normPath}`);
   }
 }
@@ -612,6 +684,7 @@ module.exports = {
   isBinaryFile,
   countTokens,
   clearFileCaches,
+  getCachedFileIfFresh, // exported for tests (cache freshness validation)
   updateFileCacheEntry, // Added for export
   removeFileCacheEntry, // Renamed and added for export
   startFileProcessing,

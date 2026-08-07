@@ -328,8 +328,10 @@ ipcMain.handle('get-token-count', async (event, textToTokenize) => {
 ipcMain.on('request-file-list', async (event, payload) => {
   console.log('Received request-file-list payload:', payload); // Log the entire payload
 
-  // Always clear file caches before scanning
-  clearFileCaches();
+  // NOTE: file caches are intentionally NOT cleared here anymore (plan 023):
+  // the cache persists across scans and is validated per-file by mtime+size,
+  // so re-opening the same folder skips re-reading unchanged files. Explicit
+  // clears still happen on ignore-mode changes and 'clear-main-cache'.
 
   if (isLoadingDirectory) {
     console.log('Already processing a directory, ignoring new request for:', payload);
