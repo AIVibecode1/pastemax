@@ -14,3 +14,24 @@
   align-items: center;
   gap: 8px;
 }
+
+/* ===== Plan 031 utilities ===== */
+
+/* Tabular figures: token counts and other data columns must not jitter. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inline icons inside empty-state sentences */
+.inline-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Update-available indicator dot under the header button */
+.update-available-indicator {
+  color: #2da6fc;
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 4px;
+}

@@ -127,9 +127,7 @@ const ModelDropdown = ({
             <div className="token-progress-container">
               <div
                 className={`token-progress-bar ${warningLevel}`}
-                style={{
-                  width: `${Math.min(exceedPercentage, 100)}%`,
-                }}
+                style={{ '--progress-width': `${Math.min(exceedPercentage, 100)}%` } as React.CSSProperties}
               ></div>
             </div>
             <div className="token-count-display">

@@ -53,6 +53,7 @@
 .stats-info {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums; /* plan 031: token/file counts */
   text-transform: capitalize;
   color: var(--text-primary);
   margin-left: var(--space-md);

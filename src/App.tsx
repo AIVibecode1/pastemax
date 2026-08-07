@@ -1478,14 +1478,7 @@ const App = (): JSX.Element => {
                   'Workspaces'
                 )}
               </button>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  marginLeft: 8,
-                }}
-              >
+              <div className="header-action-col">
                 <button
                   className={`header-action-btn check-updates-button${initialAutoUpdateResult?.isUpdateAvailable && !isUpdateModalOpen ? ' update-available' : ''}`}
                   title="Check for application updates"
@@ -1495,15 +1488,7 @@ const App = (): JSX.Element => {
                 </button>
                 {/* Show update available indicator if auto check found an update and modal is not open */}
                 {initialAutoUpdateResult?.isUpdateAvailable && !isUpdateModalOpen && (
-                  <div
-                    style={{
-                      color: 'var(--color-accent, #2da6fc)',
-                      fontWeight: 600,
-                      fontSize: 13,
-                      marginTop: 4,
-                    }}
-                    data-testid="update-available-indicator"
-                  >
+                  <div className="update-available-indicator" data-testid="update-available-indicator">
                     Update Available!
                   </div>
                 )}
@@ -1555,7 +1540,7 @@ const App = (): JSX.Element => {
               setSelectedFolderNode={setSelectedFolderNode}
             />
           ) : (
-            <div className="sidebar" style={{ width: '300px' }}>
+            <div className="sidebar sidebar-fixed-width">
               {/* Task Type Selector - always visible */}
               <TaskTypeSelector
                 selectedTaskType={selectedTaskType}
@@ -1571,12 +1556,7 @@ const App = (): JSX.Element => {
                 No folder selected. Use the{' '}
                 <FolderOpen
                   size={16}
-                  style={{
-                    display: 'inline-block',
-                    verticalAlign: 'middle',
-                    marginLeft: '2px',
-                    marginRight: '2px',
-                  }}
+                  className="inline-icon tree-empty-icon"
                 />{' '}
                 button to choose a project folder.
               </div>
@@ -1606,11 +1586,7 @@ const App = (): JSX.Element => {
                         aria-expanded={sortDropdownOpen}
                         aria-label="Change sort order"
                       >
-                        <span
-                          className="sort-icon"
-                          aria-hidden="true"
-                          style={{ display: 'flex', alignItems: 'center' }}
-                        >
+                        <span className="sort-icon" aria-hidden="true">
                           <ArrowDownUp size={16} />
                         </span>
                         <span id="current-sort-value" className="current-sort">
@@ -1663,12 +1639,7 @@ const App = (): JSX.Element => {
                   No folder selected. Use the{' '}
                   <FolderOpen
                     size={16}
-                    style={{
-                      display: 'inline-block',
-                      verticalAlign: 'middle',
-                      marginLeft: '6px',
-                      marginRight: '6px',
-                    }}
+                    className="inline-icon file-list-empty-icon"
                   />{' '}
                   button to choose a project folder.
                 </div>

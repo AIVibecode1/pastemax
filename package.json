@@ -137,6 +137,8 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "chokidar": "^3.6.0",
     "ignore": "^7.0.3",
     "lucide-react": "^0.477.0",

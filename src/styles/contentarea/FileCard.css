@@ -95,6 +95,7 @@
 .file-card-tokens {
   color: var(--text-secondary);
   font-size: 13px;
+  font-variant-numeric: tabular-nums; /* plan 031: no jitter while values change */
   white-space: nowrap; /* Prevent wrapping */
   overflow: hidden;
   text-overflow: ellipsis;

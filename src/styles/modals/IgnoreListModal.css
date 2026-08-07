@@ -9,7 +9,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -22,7 +22,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1001;
+  z-index: calc(var(--z-modal) + 1);
   animation: fadeIn 0.2s ease-out; /* Fade in animation */
   background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
   backdrop-filter: blur(2px); /* Slight blur effect for depth */
@@ -40,7 +40,7 @@
   flex-direction: column;
   border: var(--standard-border);
   position: relative;
-  z-index: 1002;
+  z-index: calc(var(--z-modal) + 2);
   animation: scaleIn 0.25s ease-out;
   /* Scale-in animation */
   transform-origin: center;
@@ -728,4 +728,17 @@
 .custom-global-ignores h4:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+/* Inputs in the ignore modal (plan 031: migrated from inline styles;
+   the search field previously hardcoded the old accent #0e6098) */
+.ignore-patterns-search-input,
+.custom-ignore-input {
+  border: 2px solid var(--color-primary);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.custom-ignore-input {
+  padding: 10px 12px;
 }

@@ -1,4 +1,10 @@
 /* -------------------- Sidebar -------------------- */
+/* Fixed-width fallback variant used when the resizable Sidebar component
+   is not mounted (plan 031 inline-style migration) */
+.sidebar-fixed-width {
+  width: 300px;
+}
+
 .sidebar {
   width: 300px;
   min-width: 200px;

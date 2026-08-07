@@ -65,6 +65,15 @@
   -ms-border-radius: 8px;
   -o-border-radius: 8px;
 }
+/* Column wrapper for the header action buttons (check-updates etc.),
+   plan 031 inline-style migration */
+.header-action-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 8px;
+}
+
 .dark-mode .header {
   border-color: var(--border-color);
 }

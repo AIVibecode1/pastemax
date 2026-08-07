@@ -236,7 +236,7 @@ const TreeItem = ({
   return (
     <div
       className={`tree-item ${isSelected ? 'selected' : ''} ${isFolderSelected ? 'folder-selected' : ''} ${isCheckboxDisabled ? 'disabled-item' : ''}`}
-      style={{ marginLeft: `${level * 16}px` }}
+      style={{ '--tree-level': level } as React.CSSProperties}
       onClick={handleItemClick}
     >
       {/* Expand/collapse arrow for directories */}

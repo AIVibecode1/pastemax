@@ -15,6 +15,11 @@
   font-style: italic;
 }
 
+/* Inline icon inside the empty-tree sentence (plan 031) */
+.tree-empty .inline-icon {
+  margin: 0 2px;
+}
+
 .tree-loading {
   display: flex;
   flex-direction: column;
@@ -34,6 +39,8 @@
 .tree-item {
   display: flex;
   align-items: center;
+  /* Indentation comes from the --tree-level custom property (plan 031) */
+  margin-left: calc(var(--tree-level, 0) * 16px);
   padding: var(--space-sm) var(--space-md); /* More horizontal padding */
   margin: 2px 0;
   border-radius: 4px;

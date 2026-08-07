@@ -214,12 +214,7 @@ export const IgnoreListModal = ({
                   placeholder="Search patterns..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
-                  style={{
-                    border: '2px solid #0e6098',
-                    borderRadius: '8px',
-                    transition: 'all 0.3s ease',
-                  }}
+                  className="search-input ignore-patterns-search-input"
                   autoFocus
                 />
               </div>
@@ -258,13 +253,7 @@ export const IgnoreListModal = ({
                         placeholder="Enter additional ignore pattern"
                         value={customIgnoreInput}
                         onChange={(e) => setCustomIgnoreInput(e.target.value)}
-                        className="search-input"
-                        style={{
-                          border: '2px solid var(--color-primary)',
-                          borderRadius: '8px',
-                          padding: '10px 12px',
-                          transition: 'all 0.3s ease',
-                        }}
+                        className="search-input custom-ignore-input"
                       />
                       <button
                         className="add-pattern-button"

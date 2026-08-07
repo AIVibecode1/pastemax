@@ -12,7 +12,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   animation: fadeIn 0.2s ease-out; /* Fade in animation */
   background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
   backdrop-filter: blur(2px); /* Slight blur effect for depth */

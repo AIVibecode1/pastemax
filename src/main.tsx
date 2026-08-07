@@ -6,6 +6,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+/* ============================== FONTS (self-hosted, plan 031) ============================== */
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
+
 /* ============================== BASE STYLES ============================== */
 import './styles/index.css';
 import './styles/base/Buttons.css';

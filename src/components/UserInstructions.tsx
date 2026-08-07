@@ -294,9 +294,6 @@ const UserInstructions = ({
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
             placeholder="Enter your instructions here..."
-            style={{
-              height: '100%',
-            }}
           />
 
           {/* Resize handles */}

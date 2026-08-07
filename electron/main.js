@@ -570,13 +570,12 @@ function createWindow() {
 
   // Set CSP header for all environments.
   // Production is strict (no 'unsafe-inline'); the Vite build emits only
-  // external scripts/styles. Dev keeps 'unsafe-inline' + localhost for HMR.
-  // NOTE: Google Fonts sources stay until plan 031 self-hosts fonts; every
-  // future renderer-side network call must be added to connect-src explicitly.
+  // external scripts/styles, and fonts are self-hosted (plan 031).
+  // Dev keeps 'unsafe-inline' + localhost for HMR.
   const isDev = process.env.NODE_ENV === 'development';
   const csp = isDev
-    ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none';"
-    : "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none';";
+    ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none';"
+    : "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none';";
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({

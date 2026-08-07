@@ -4,41 +4,41 @@
 
 /* -------------------- Theme Colors -------------------- */
 :root {
-  /* Primary Color Palette */
-  --color-primary: #0e639c;
-  --color-primary-light: #70c0fa;
-  --color-primary-dark: #0c5183;
+  /* Primary Color Palette (refined single accent, plan 031) */
+  --color-primary: #0b6cb0;
+  --color-primary-light: #4da3d9;
+  --color-primary-dark: #0a5590;
 
   /* Background Colors */
   --background-primary: #ffffff;
-  --background-secondary: #f8f8f8;
-  --background-tertiary: #f1f1f1;
-  --background-selected: rgba(101, 101, 101, 0.06);
+  --background-secondary: #f8fafc;
+  --background-tertiary: #f1f5f9;
+  --background-selected: rgba(11, 108, 176, 0.06);
 
   /* Text Colors */
-  --text-primary: #000000;
-  --text-secondary: #666666;
-  --text-disabled: #cccccc;
+  --text-primary: #1a1a1a;
+  --text-secondary: #64748b;
+  --text-disabled: #b8c0cc;
   --text-on-primary: #ffffff;
 
   /* Border Colors */
-  --border-color: #e0e0e0;
-  --border-color-focus: #0e639c;
+  --border-color: #dde3ea;
+  --border-color-focus: #0b6cb0;
 
   /* Interactive States */
-  --hover-color: #f5f5f5;
-  --active-color: #e9e9e9;
-  --focus-ring: 0 0 0 2px rgba(14, 99, 156, 0.4);
+  --hover-color: #eef2f6;
+  --active-color: #e4ebf2;
+  --focus-ring: 0 0 0 2px rgba(11, 108, 176, 0.45);
 
-  /* Status Colors */
-  --success-color: #2ecc71;
-  --warning-color: #f39c12;
-  --error-color: #e74c3c;
+  /* Status Colors (desaturated for AA contrast) */
+  --success-color: #1f9d55;
+  --warning-color: #b7791f;
+  --error-color: #c0392b;
 
   /* Element Colors */
-  --primary-button-background: #000000;
+  --primary-button-background: #1a1a1a;
   --primary-button-text: #ffffff;
-  --primary-button-hover: #333333;
+  --primary-button-hover: #2e2e2e;
 
   /* Animation & Transitions */
   --transition-fast: 150ms ease;
@@ -64,26 +64,28 @@
 
   /* Typography */
   --font-family-ui:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-family-code: Consolas, Menlo, Monaco, 'Courier New', monospace;
+    'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-family-code: 'Geist Mono Variable', Consolas, Menlo, Monaco, 'Courier New', monospace;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-md: 16px;
   --font-size-lg: 18px;
   --font-size-xl: 20px;
+  --font-size-2xl: 24px;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-bold: 600;
+  --tracking-tight: -0.01em;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
+  /* Shadows (hue-tinted instead of pure black) */
+  --shadow-sm: 0 1px 2px rgba(11, 108, 176, 0.08);
+  --shadow-md: 0 2px 6px rgba(11, 108, 176, 0.12);
+  --shadow-lg: 0 4px 12px rgba(11, 108, 176, 0.16);
 
   /* Scrollbar Variables */
-  --scrollbar-track: #f1f1f1;
-  --scrollbar-thumb: #c1c1c1;
-  --scrollbar-thumb-hover: #a1a1a1;
+  --scrollbar-track: #eef2f6;
+  --scrollbar-thumb: #b9c2cc;
+  --scrollbar-thumb-hover: #a3adb8;
   --scrollbar-width: 8px;
   --scrollbar-width-thin: 7px;
 
@@ -96,8 +98,8 @@
 /* -------------------- Dark Mode Variables -------------------- */
 .dark-mode {
   /* Primary Color Palette */
-  --color-primary: #0e639c; /* Kept consistent for branding */
-  --color-primary-light: #1177be;
+  --color-primary: #0e7bc4; /* Slightly brighter on dark surfaces */
+  --color-primary-light: #4da3d9;
   --color-primary-dark: #0c5183;
 
   /* Background Colors */
@@ -108,7 +110,7 @@
 
   /* Text Colors */
   --text-primary: #e8e8e8;
-  --text-secondary: #bbbbbb;
+  --text-secondary: #a3adb8;
   --text-disabled: #808080;
   --text-on-primary: #ffffff;
 
@@ -119,22 +121,22 @@
   /* Interactive States */
   --hover-color: #333333;
   --active-color: #3d3d3d;
-  --focus-ring: 0 0 0 2px rgba(77, 156, 214, 0.4);
+  --focus-ring: 0 0 0 2px rgba(77, 156, 214, 0.45);
 
   /* Element Colors */
-  --primary-button-background: #0e639c;
+  --primary-button-background: #0e7bc4;
   --primary-button-text: #ffffff;
   --primary-button-hover: #1177be;
 
-  /* Status Colors (kept consistent) */
-  --success-color: #2ecc71;
-  --warning-color: #f39c12;
-  --error-color: #e74c3c;
+  /* Status Colors (desaturated, consistent with light) */
+  --success-color: #34d17b;
+  --warning-color: #d9a441;
+  --error-color: #e0604f;
 
-  /* Shadows (adjusted for dark mode) */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.3);
+  /* Shadows (adjusted for dark mode, hue-tinted) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.38);
 
   /* Scrollbar Variables */
   --scrollbar-track: #1e1e1e;
