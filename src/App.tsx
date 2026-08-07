@@ -45,6 +45,7 @@ import {
   formatUserInstructionsBlock,
   assembleCopyContent,
 } from './utils/contentFormatUtils';
+import { safeGetItem, safeSetItem, safeRemoveItem, safeParseJSON, isStringArray } from './utils/storage';
 import type { UpdateDisplayState } from './types/UpdateTypes';
 
 /* ============================== GLOBAL DECLARATIONS ============================== */
@@ -80,12 +81,11 @@ const STORAGE_KEYS = {
 
 const App = (): JSX.Element => {
   /* ============================== STATE: Load initial state from localStorage ============================== */
-  const savedFolder = localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
-  const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
-  const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
-  const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
-  // const savedTaskType = localStorage.getItem(STORAGE_KEYS.TASK_TYPE); // Removed this line
-  // const savedIgnoreMode = localStorage.getItem(STORAGE_KEYS.IGNORE_MODE); no longer needed
+  const savedFolder = safeGetItem(STORAGE_KEYS.SELECTED_FOLDER);
+  const savedSortOrder = safeGetItem(STORAGE_KEYS.SORT_ORDER);
+  const savedSearchTerm = safeGetItem(STORAGE_KEYS.SEARCH_TERM);
+  // const savedTaskType = safeGetItem(STORAGE_KEYS.TASK_TYPE); // Removed this line
+  // const savedIgnoreMode = safeGetItem(STORAGE_KEYS.IGNORE_MODE); no longer needed
 
   /* ============================== STATE: Core App State ============================== */
   const [selectedFolder, setSelectedFolder] = useState(
@@ -97,7 +97,7 @@ const App = (): JSX.Element => {
   /* ============================== STATE: Workspace Management ============================== */
   const [isWorkspaceManagerOpen, setIsWorkspaceManagerOpen] = useState(false);
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.CURRENT_WORKSPACE) || null;
+    return safeGetItem(STORAGE_KEYS.CURRENT_WORKSPACE) || null;
   });
   // State for confirm folder modal
   const [isConfirmUseFolderModalOpen, setIsConfirmUseFolderModalOpen] = useState(false);
@@ -108,7 +108,7 @@ const App = (): JSX.Element => {
   }>({ workspaceId: null, workspaceName: '', folderPath: '' });
 
   const [workspaces, setWorkspaces] = useState(() => {
-    const savedWorkspaces = localStorage.getItem(STORAGE_KEYS.WORKSPACES);
+    const savedWorkspaces = safeGetItem(STORAGE_KEYS.WORKSPACES);
     if (savedWorkspaces) {
       try {
         const parsed = JSON.parse(savedWorkspaces);
@@ -119,19 +119,19 @@ const App = (): JSX.Element => {
           console.warn(
             'Invalid workspaces data in localStorage (not an array), resetting to empty array'
           );
-          localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
+          safeSetItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
           return [] as Workspace[];
         }
       } catch (error) {
         console.error('Failed to parse workspaces from localStorage during initialization:', error);
         // Reset localStorage to prevent further errors
-        localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
+        safeSetItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
         return [] as Workspace[];
       }
     }
     // Initialize with empty array and ensure localStorage has a valid value
     console.log('No workspaces found in localStorage, initializing with empty array');
-    localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
+    safeSetItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
     return [] as Workspace[];
   });
 
@@ -149,9 +149,11 @@ const App = (): JSX.Element => {
   } = useIgnorePatterns(selectedFolder, isElectron);
 
   /* ============================== STATE: File Selection and Sorting ============================== */
-  const [selectedFiles, setSelectedFiles] = useState(
-    (savedFiles ? JSON.parse(savedFiles).map(normalizePath) : []) as string[]
-  );
+  const [selectedFiles, setSelectedFiles] = useState<string[]>(() => {
+    const saved = safeGetItem(STORAGE_KEYS.SELECTED_FILES);
+    const parsed = safeParseJSON<string[]>(saved, [], isStringArray);
+    return parsed.map(normalizePath);
+  });
   const [sortOrder, setSortOrder] = useState(savedSortOrder || 'tokens-desc');
   const [searchTerm, setSearchTerm] = useState(savedSearchTerm || '');
   const [expandedNodes, setExpandedNodes] = useState({} as Record<string, boolean>);
@@ -169,7 +171,7 @@ const App = (): JSX.Element => {
   });
   const [includeFileTree, setIncludeFileTree] = useState(false);
   const [includeBinaryPaths, setIncludeBinaryPaths] = useState(
-    localStorage.getItem(STORAGE_KEYS.INCLUDE_BINARY_PATHS) === 'true'
+    safeGetItem(STORAGE_KEYS.INCLUDE_BINARY_PATHS) === 'true'
   );
 
   /* ============================== STATE: UI Controls ============================== */
@@ -194,7 +196,7 @@ const App = (): JSX.Element => {
 
   /* ============================== STATE: Copy History ============================== */
   const [copyHistory, setCopyHistory] = useState(() => {
-    const savedHistory = localStorage.getItem(STORAGE_KEYS.COPY_HISTORY);
+    const savedHistory = safeGetItem(STORAGE_KEYS.COPY_HISTORY);
     if (savedHistory) {
       try {
         return JSON.parse(savedHistory) as CopyHistoryItem[];
@@ -207,7 +209,7 @@ const App = (): JSX.Element => {
   const [isCopyHistoryModalOpen, setIsCopyHistoryModalOpen] = useState(false);
 
   const [selectedModelId, setSelectedModelId] = useState(() => {
-    const savedModelId = localStorage.getItem('pastemax-selected-model');
+    const savedModelId = safeGetItem('pastemax-selected-model');
     return savedModelId || '';
   });
 
@@ -224,7 +226,7 @@ const App = (): JSX.Element => {
 
     Object.values(STORAGE_KEYS).forEach((key) => {
       if (!keysToPreserve.includes(key)) {
-        localStorage.removeItem(key);
+        safeRemoveItem(key);
       }
     });
 
@@ -249,12 +251,12 @@ const App = (): JSX.Element => {
     }
 
     // Clear current workspace but keep workspaces list intact
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKSPACE);
+    safeRemoveItem(STORAGE_KEYS.CURRENT_WORKSPACE);
     setCurrentWorkspaceId(null);
     console.timeEnd('clearSavedState');
 
     // Keep the task type
-    const savedTaskType = localStorage.getItem(STORAGE_KEYS.TASK_TYPE);
+    const savedTaskType = safeGetItem(STORAGE_KEYS.TASK_TYPE);
 
     // Reload the page to refresh UI, but without affecting workspaces data
     setProcessingStatus({
@@ -286,7 +288,7 @@ const App = (): JSX.Element => {
 
   // Load expanded nodes state from localStorage
   useEffect(() => {
-    const savedExpandedNodes = localStorage.getItem(STORAGE_KEYS.EXPANDED_NODES);
+    const savedExpandedNodes = safeGetItem(STORAGE_KEYS.EXPANDED_NODES);
     if (savedExpandedNodes) {
       try {
         setExpandedNodes(JSON.parse(savedExpandedNodes));
@@ -300,40 +302,40 @@ const App = (): JSX.Element => {
   // Persist selected folder when it changes
   useEffect(() => {
     if (selectedFolder) {
-      localStorage.setItem(STORAGE_KEYS.SELECTED_FOLDER, selectedFolder);
+      safeSetItem(STORAGE_KEYS.SELECTED_FOLDER, selectedFolder);
     } else {
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+      safeRemoveItem(STORAGE_KEYS.SELECTED_FOLDER);
     }
   }, [selectedFolder]);
 
   // Persist selected files when they change
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_FILES, JSON.stringify(selectedFiles));
+    safeSetItem(STORAGE_KEYS.SELECTED_FILES, JSON.stringify(selectedFiles));
   }, [selectedFiles]);
 
   // Persist sort order when it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SORT_ORDER, sortOrder);
+    safeSetItem(STORAGE_KEYS.SORT_ORDER, sortOrder);
   }, [sortOrder]);
 
   // Persist search term when it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SEARCH_TERM, searchTerm);
+    safeSetItem(STORAGE_KEYS.SEARCH_TERM, searchTerm);
   }, [searchTerm]);
 
   // Persist ignore mode when it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.IGNORE_MODE, ignoreMode);
+    safeSetItem(STORAGE_KEYS.IGNORE_MODE, ignoreMode);
   }, [ignoreMode]);
 
   // Persist includeBinaryPaths when it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.INCLUDE_BINARY_PATHS, String(includeBinaryPaths));
+    safeSetItem(STORAGE_KEYS.INCLUDE_BINARY_PATHS, String(includeBinaryPaths));
   }, [includeBinaryPaths]);
 
   // Persist task type when it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.TASK_TYPE, selectedTaskType);
+    safeSetItem(STORAGE_KEYS.TASK_TYPE, selectedTaskType);
   }, [selectedTaskType]);
 
   // Effect to handle binary file selection when includeBinaryPaths changes
@@ -376,8 +378,8 @@ const App = (): JSX.Element => {
 
       // If we're in safe mode, don't auto-load the previously selected folder
       if (mode.safeMode) {
-        localStorage.removeItem('hasLoadedInitialData');
-        localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+        safeRemoveItem('hasLoadedInitialData');
+        safeRemoveItem(STORAGE_KEYS.SELECTED_FOLDER);
       }
     };
 
@@ -407,7 +409,7 @@ const App = (): JSX.Element => {
 
     // Check if this is a refresh vs initial load
     const isRefreshingCurrentFolder =
-      reloadTrigger > 0 && selectedFolder === localStorage.getItem(STORAGE_KEYS.SELECTED_FOLDER);
+      reloadTrigger > 0 && selectedFolder === safeGetItem(STORAGE_KEYS.SELECTED_FOLDER);
 
     if (ignoreSettingsModified === false && lastSentIgnoreSettingsModifiedRef.current === true) {
       console.log('[useEffect] Skipping request: run is due to ignoreSettingsModified reset.');
@@ -496,16 +498,14 @@ const App = (): JSX.Element => {
 
       // Update current workspace's folder path if a workspace is active
       if (currentWorkspaceId) {
-        setWorkspaces((prevWorkspaces: Workspace[]) => {
-          const updatedWorkspaces = prevWorkspaces.map((workspace: Workspace) =>
+        // Persistence is handled by the workspaces effect below.
+        setWorkspaces((prevWorkspaces: Workspace[]) =>
+          prevWorkspaces.map((workspace: Workspace) =>
             workspace.id === currentWorkspaceId
               ? { ...workspace, folderPath: normalizedFolderPath, lastUsed: Date.now() }
               : workspace
-          );
-          // Save to localStorage
-          localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(updatedWorkspaces));
-          return updatedWorkspaces;
-        });
+          )
+        );
       }
     },
     [selectedFolder, allFiles, processingStatus, currentWorkspaceId]
@@ -1009,17 +1009,16 @@ const App = (): JSX.Element => {
 
   // Handle expand/collapse state changes
   const toggleExpanded = (nodeId: string) => {
-    setExpandedNodes((prev: Record<string, boolean>) => {
-      const newState = {
-        ...prev,
-        [nodeId]: prev[nodeId] === undefined ? false : !prev[nodeId],
-      };
+    // Compute the next state outside the updater so the updater stays pure.
+    const newState = {
+      ...expandedNodes,
+      [nodeId]: expandedNodes[nodeId] === undefined ? false : !expandedNodes[nodeId],
+    };
 
-      // Save to localStorage
-      localStorage.setItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newState));
+    setExpandedNodes(newState);
 
-      return newState;
-    });
+    // Save to localStorage
+    safeSetItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newState));
   };
 
   // Helper function to get all directory node IDs from the current file list
@@ -1074,7 +1073,7 @@ const App = (): JSX.Element => {
     });
 
     setExpandedNodes(newExpandedNodes);
-    localStorage.setItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newExpandedNodes));
+    safeSetItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newExpandedNodes));
   }, [selectedFolderNode, getAllDirectoryNodeIds, expandedNodes, setExpandedNodes]);
 
   const collapseAllFolders = useCallback(() => {
@@ -1090,7 +1089,7 @@ const App = (): JSX.Element => {
       newExpandedNodes[id] = false;
     });
     setExpandedNodes(newExpandedNodes);
-    localStorage.setItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newExpandedNodes));
+    safeSetItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newExpandedNodes));
     setLastExpandCollapseWasSelected(false);
   }, [
     selectedFolderNode,
@@ -1115,7 +1114,7 @@ const App = (): JSX.Element => {
     });
 
     setExpandedNodes(newExpandedNodes);
-    localStorage.setItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newExpandedNodes));
+    safeSetItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newExpandedNodes));
   }, [selectedFolderNode, getAllDirectoryNodeIds, expandedNodes, setExpandedNodes]);
 
   const expandAllFolders = useCallback(() => {
@@ -1129,7 +1128,7 @@ const App = (): JSX.Element => {
     // as per the logic in Sidebar.tsx: expandedNodes[node.id] !== undefined ? expandedNodes[node.id] : true;
     const newExpandedNodes = {};
     setExpandedNodes(newExpandedNodes);
-    localStorage.setItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newExpandedNodes));
+    safeSetItem(STORAGE_KEYS.EXPANDED_NODES, JSON.stringify(newExpandedNodes));
     setLastExpandCollapseWasSelected(false);
   }, [selectedFolderNode, lastExpandCollapseWasSelected, expandSelectedFolder, setExpandedNodes]);
 
@@ -1270,7 +1269,7 @@ const App = (): JSX.Element => {
   // Workspace functions
   const handleOpenWorkspaceManager = () => {
     // Force reload workspaces from localStorage before opening
-    const storedWorkspaces = localStorage.getItem(STORAGE_KEYS.WORKSPACES);
+    const storedWorkspaces = safeGetItem(STORAGE_KEYS.WORKSPACES);
     if (storedWorkspaces) {
       try {
         const parsed = JSON.parse(storedWorkspaces);
@@ -1294,20 +1293,16 @@ const App = (): JSX.Element => {
     if (!workspace) return;
 
     // Save current workspace id
-    localStorage.setItem(STORAGE_KEYS.CURRENT_WORKSPACE, workspaceId);
+    safeSetItem(STORAGE_KEYS.CURRENT_WORKSPACE, workspaceId);
     setCurrentWorkspaceId(workspaceId);
 
     // Update last used timestamp using functional state update
-    setWorkspaces((currentWorkspaces: Workspace[]) => {
-      const updatedWorkspaces = currentWorkspaces.map((w: Workspace) =>
+    // (persistence handled by the workspaces effect)
+    setWorkspaces((currentWorkspaces: Workspace[]) =>
+      currentWorkspaces.map((w: Workspace) =>
         w.id === workspaceId ? { ...w, lastUsed: Date.now() } : w
-      );
-
-      // Save to localStorage
-      localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(updatedWorkspaces));
-
-      return updatedWorkspaces;
-    });
+      )
+    );
 
     // If the workspace has a folder associated with it
     if (workspace.folderPath) {
@@ -1317,7 +1312,7 @@ const App = (): JSX.Element => {
 
         // First set the selected folder
         setSelectedFolder(workspace.folderPath);
-        localStorage.setItem(STORAGE_KEYS.SELECTED_FOLDER, workspace.folderPath);
+        safeSetItem(STORAGE_KEYS.SELECTED_FOLDER, workspace.folderPath);
 
         // Request file data from the main process (if in Electron)
         if (isElectron && !isSafeMode) {
@@ -1337,7 +1332,7 @@ const App = (): JSX.Element => {
     } else {
       // Clear current selection if workspace has no folder
       setSelectedFolder(null);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+      safeRemoveItem(STORAGE_KEYS.SELECTED_FOLDER);
       setSelectedFiles([]);
       setAllFiles([]);
       setProcessingStatus({
@@ -1361,17 +1356,16 @@ const App = (): JSX.Element => {
       lastUsed: Date.now(),
     };
 
-    // Add to workspaces list
+    // Add to workspaces list (persistence handled by the workspaces effect)
     setWorkspaces((currentWorkspaces: Workspace[]) => {
       console.log('Updating workspaces state, current count:', currentWorkspaces.length);
       const updatedWorkspaces = [...currentWorkspaces, newWorkspace];
-      localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(updatedWorkspaces));
       console.log('Saved updated workspaces to localStorage, new count:', updatedWorkspaces.length);
       return updatedWorkspaces;
     });
 
     // Set as current workspace
-    localStorage.setItem(STORAGE_KEYS.CURRENT_WORKSPACE, newWorkspace.id);
+    safeSetItem(STORAGE_KEYS.CURRENT_WORKSPACE, newWorkspace.id);
     setCurrentWorkspaceId(newWorkspace.id);
     console.log('Set current workspace ID to:', newWorkspace.id);
 
@@ -1386,8 +1380,8 @@ const App = (): JSX.Element => {
     } else {
       // No folder selected - proceed with folder selection
       setSelectedFolder(null);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_FILES);
+      safeRemoveItem(STORAGE_KEYS.SELECTED_FOLDER);
+      safeRemoveItem(STORAGE_KEYS.SELECTED_FILES);
       setSelectedFiles([]);
       setAllFiles([]);
       setProcessingStatus({
@@ -1417,8 +1411,8 @@ const App = (): JSX.Element => {
     setIsConfirmUseFolderModalOpen(false);
     // Clear state and open folder selector
     setSelectedFolder(null);
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_FILES);
+    safeRemoveItem(STORAGE_KEYS.SELECTED_FOLDER);
+    safeRemoveItem(STORAGE_KEYS.SELECTED_FILES);
     setSelectedFiles([]);
     setAllFiles([]);
     setProcessingStatus({
@@ -1437,22 +1431,13 @@ const App = (): JSX.Element => {
     console.log('Deleting workspace:', workspaceBeingDeleted?.name);
 
     // Filter out the deleted workspace, using functional update to prevent stale state
+    // (persistence handled by the workspaces effect, including the empty-array case)
     setWorkspaces((currentWorkspaces: Workspace[]) => {
       const filteredWorkspaces = currentWorkspaces.filter((w: Workspace) => w.id !== workspaceId);
       console.log(
         `Filtered workspaces: ${currentWorkspaces.length} -> ${filteredWorkspaces.length}`
       );
-
-      // Save the updated workspaces list to localStorage
-      localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(filteredWorkspaces));
       console.log('Saved filtered workspaces to localStorage');
-
-      // Ensure empty array is properly saved when deleting the last workspace
-      if (filteredWorkspaces.length === 0) {
-        console.log('No workspaces left, ensuring empty array is saved');
-        localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
-      }
-
       return filteredWorkspaces;
     });
 
@@ -1461,12 +1446,12 @@ const App = (): JSX.Element => {
     // If deleting current workspace, clear current selection
     if (currentWorkspaceId === workspaceId) {
       console.log('Deleted the current workspace, clearing workspace state');
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKSPACE);
+      safeRemoveItem(STORAGE_KEYS.CURRENT_WORKSPACE);
       setCurrentWorkspaceId(null);
 
       // Also clear folder selection when current workspace is deleted
       setSelectedFolder(null);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+      safeRemoveItem(STORAGE_KEYS.SELECTED_FOLDER);
       setSelectedFiles([]);
       setAllFiles([]);
       setProcessingStatus({
@@ -1483,25 +1468,24 @@ const App = (): JSX.Element => {
 
   // Handler to update a workspace's folder path
   const handleUpdateWorkspaceFolder = (workspaceId: string, folderPath: string | null) => {
-    setWorkspaces((prevWorkspaces: Workspace[]) => {
-      const updatedWorkspaces = prevWorkspaces.map((workspace: Workspace) =>
+    // (persistence handled by the workspaces effect)
+    setWorkspaces((prevWorkspaces: Workspace[]) =>
+      prevWorkspaces.map((workspace: Workspace) =>
         workspace.id === workspaceId
           ? { ...workspace, folderPath, lastUsed: Date.now() }
           : workspace
-      );
-      localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(updatedWorkspaces));
-      return updatedWorkspaces;
-    });
+      )
+    );
 
     // If updating the current workspace, also update the selected folder
     if (currentWorkspaceId === workspaceId) {
       if (folderPath) {
         // Update local storage and request file list
-        localStorage.setItem(STORAGE_KEYS.SELECTED_FOLDER, folderPath);
+        safeSetItem(STORAGE_KEYS.SELECTED_FOLDER, folderPath);
         handleFolderSelected(folderPath);
       } else {
         // Clear folder selection in localStorage and state
-        localStorage.removeItem(STORAGE_KEYS.SELECTED_FOLDER);
+        safeRemoveItem(STORAGE_KEYS.SELECTED_FOLDER);
         setSelectedFolder(null);
         setSelectedFiles([]);
         setAllFiles([]);
@@ -1536,7 +1520,7 @@ const App = (): JSX.Element => {
 
       const updatedHistory = [newHistoryItem, ...copyHistory].slice(0, 20); // Keep last 20 items
       setCopyHistory(updatedHistory);
-      localStorage.setItem(STORAGE_KEYS.COPY_HISTORY, JSON.stringify(updatedHistory));
+      safeSetItem(STORAGE_KEYS.COPY_HISTORY, JSON.stringify(updatedHistory));
 
       // Reset the status after 2 seconds
       setTimeout(() => {
@@ -1567,7 +1551,7 @@ const App = (): JSX.Element => {
   // Clear copy history
   const handleClearCopyHistory = () => {
     setCopyHistory([]);
-    localStorage.removeItem(STORAGE_KEYS.COPY_HISTORY);
+    safeRemoveItem(STORAGE_KEYS.COPY_HISTORY);
   };
 
   const handleManageCustomTaskTypes = () => {
@@ -1588,13 +1572,13 @@ const App = (): JSX.Element => {
   // Handle model selection
   const handleModelSelect = (modelId: string) => {
     setSelectedModelId(modelId);
-    localStorage.setItem('pastemax-selected-model', modelId);
+    safeSetItem('pastemax-selected-model', modelId);
   };
 
   // Persist workspaces when they change
   useEffect(() => {
     if (workspaces) {
-      localStorage.setItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(workspaces));
+      safeSetItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(workspaces));
 
       // Log information for debugging purposes
       console.log(`Workspaces updated: ${workspaces.length} workspaces saved to localStorage`);
@@ -1602,7 +1586,7 @@ const App = (): JSX.Element => {
       // If we have a current workspace, ensure it still exists in the workspaces array
       if (currentWorkspaceId && !workspaces.some((w: Workspace) => w.id === currentWorkspaceId)) {
         console.log('Current workspace no longer exists, clearing currentWorkspaceId');
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKSPACE);
+        safeRemoveItem(STORAGE_KEYS.CURRENT_WORKSPACE);
         setCurrentWorkspaceId(null);
       }
     }
