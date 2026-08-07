@@ -74,8 +74,3 @@ repomix.config.json
 
 # Local tooling and agent skill copies (not part of the project)
 .agents/
-
-# Backups and dead files awaiting deletion (plans 028)
-electron/backup/
-src/styles/backup/
-.github/workflows/*.disabled
