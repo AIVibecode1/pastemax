@@ -104,7 +104,7 @@ contextBridge.exposeInMainWorld('electron', {
       compatListenerWrappers.get(channel).add(wrapper);
       return wrapper;
     },
-    removeListener: (channel, _func) => {
+    removeListener: (channel) => {
       const validChannels = [
         'folder-selected',
         'file-list-data',
