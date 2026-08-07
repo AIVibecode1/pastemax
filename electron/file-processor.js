@@ -3,7 +3,6 @@
 // ======================
 
 // Imports
-const { app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -16,6 +15,7 @@ const {
   safeRelativePath,
   safePathJoin,
   isValidPath,
+  isMacAppBundlePath,
 } = require('./utils');
 
 const {
@@ -224,8 +224,7 @@ async function processDirectory({
   }
 
   if (
-    fullPath.includes('.app') ||
-    fullPath === app.getAppPath() ||
+    isMacAppBundlePath(fullPath) ||
     !isValidPath(relativePath) ||
     relativePath.startsWith('..')
   ) {
@@ -394,7 +393,7 @@ async function readFilesRecursively(
             return;
           }
 
-          if (fullPath.includes('.app') || fullPath === app.getAppPath()) {
+          if (isMacAppBundlePath(fullPath)) {
             console.log('System path, skipping:', fullPath);
             return;
           }

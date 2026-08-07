@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 const utils = require('../../electron/utils.js') as {
   normalizePath: (p: string | null | undefined) => string;
   isWSLPath: (p: string | null | undefined) => boolean;
+  isMacAppBundlePath: (p: string | null | undefined) => boolean;
   ensureAbsolutePath: (p: string) => string;
   safeRelativePath: (from: string, to: string) => string;
   safePathJoin: (...paths: string[]) => string;
@@ -83,5 +84,27 @@ describe('electron isValidPath', () => {
   it('accepts valid paths', () => {
     expect(utils.isValidPath('/repo/a.ts')).toBe(true);
     expect(utils.isValidPath('C:/repo/a.ts')).toBe(true);
+  });
+});
+
+describe('electron isMacAppBundlePath', () => {
+  it('detects real .app bundles and their contents', () => {
+    expect(utils.isMacAppBundlePath('/Applications/PasteMax.app')).toBe(true);
+    expect(utils.isMacAppBundlePath('/Applications/PasteMax.app/Contents/Resources/app.asar')).toBe(
+      true
+    );
+    expect(utils.isMacAppBundlePath('C:/Users/x/My App.app/config.json')).toBe(true);
+  });
+
+  it('does NOT match substrings inside segments', () => {
+    expect(utils.isMacAppBundlePath('/repo/src/foo.app.js')).toBe(false);
+    expect(utils.isMacAppBundlePath('/repo/src/apple/')).toBe(false);
+    expect(utils.isMacAppBundlePath('/repo/package.json.applesauce')).toBe(false);
+    expect(utils.isMacAppBundlePath('/repo/src/webapp/index.html')).toBe(false);
+  });
+
+  it('handles empty input', () => {
+    expect(utils.isMacAppBundlePath('')).toBe(false);
+    expect(utils.isMacAppBundlePath(null)).toBe(false);
   });
 });

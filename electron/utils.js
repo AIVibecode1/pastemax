@@ -11,6 +11,19 @@ function isWSLPath(filePath) {
   return normalized.startsWith('\\\\wsl.localhost/') || normalized.startsWith('\\\\wsl$/');
 }
 
+/**
+ * True when any path segment ends with '.app' (a macOS application bundle),
+ * or the path IS a .app bundle. Segment-aware: 'foo.app.js' and 'src/webapp/'
+ * are NOT bundles and return false.
+ * @param {string} filePath - normalized or raw path
+ * @returns {boolean}
+ */
+function isMacAppBundlePath(filePath) {
+  if (!filePath) return false;
+  const segments = normalizePath(filePath).split('/');
+  return segments.some((seg) => seg.length > 4 && seg.endsWith('.app'));
+}
+
 function normalizePath(filePath) {
   if (!filePath) return filePath;
 
@@ -65,6 +78,7 @@ function isValidPath(pathToCheck) {
 
 module.exports = {
   isWSLPath,
+  isMacAppBundlePath,
   normalizePath,
   ensureAbsolutePath,
   safeRelativePath,
