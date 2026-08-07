@@ -18,6 +18,8 @@ const ROOT = '/repo';
 
 // Representative paths: some match GlobalModeExclusion patterns, some don't.
 // npm-debug.log* and yarn-error.log* are real entries in GlobalModeExclusion.
+// NOTE: .git/config is deliberately absent — it is excluded by DEFAULT_PATTERNS
+// only, which always applies on top of the global filter (see the second test).
 const CASES = [
   '/repo/src/a.ts',
   '/repo/npm-debug.log',
@@ -26,7 +28,6 @@ const CASES = [
   '/repo/src/npm-debug.log',
   '/repo/README.md',
   '/repo/package.json',
-  '/repo/.git/config',
   '/repo/dist/bundle.js',
   '/repo/src/deep/nested/file.txt',
 ];
