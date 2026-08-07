@@ -56,12 +56,6 @@ export interface FileListProps {
   toggleFileSelection: (filePath: string) => void;
 }
 
-export interface FileCardProps {
-  file: FileData;
-  isSelected: boolean;
-  toggleSelection: (filePath: string) => void;
-}
-
 export interface TreeItemProps {
   node: TreeNode;
   selectedFiles: string[];
@@ -71,20 +65,4 @@ export interface TreeItemProps {
   includeBinaryPaths: boolean;
   selectedFolderNode?: string | null;
   setSelectedFolderNode?: (nodeId: string | null) => void;
-}
-
-export interface SortOption {
-  value: string;
-  label: string;
-}
-
-export interface SearchBarProps {
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-}
-
-export interface CopyButtonProps {
-  text: string;
-  className?: string;
-  children?: JSX.Element | string;
 }

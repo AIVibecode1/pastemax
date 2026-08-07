@@ -3,14 +3,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import ConfirmUseFolderModal from './components/ConfirmUseFolderModal';
 import Sidebar from './components/Sidebar';
 import FileList from './components/FileList';
-import { FileData, IgnoreMode } from './types/FileTypes';
+import { FileData } from './types/FileTypes';
 import { ThemeProvider } from './context/ThemeContext';
 import IgnoreListModal from './components/IgnoreListModal';
 import ThemeToggle from './components/ThemeToggle';
 import UpdateModal from './components/UpdateModal';
 import { useIgnorePatterns } from './hooks/useIgnorePatterns';
+import { useWorkspaces } from './hooks/useWorkspaces';
+import { useCopyPipeline } from './hooks/useCopyPipeline';
 import UserInstructions from './components/UserInstructions';
-import { STORAGE_KEY_TASK_TYPE, DEFAULT_TASK_TYPES, STORAGE_KEY_CUSTOM_TASK_TYPES } from './types/TaskTypes';
+import { DEFAULT_TASK_TYPES, STORAGE_KEY_CUSTOM_TASK_TYPES } from './types/TaskTypes';
 import {
   DownloadCloud,
   ArrowDownUp,
@@ -33,19 +35,15 @@ import ToggleSwitch from './components/base/ToggleSwitch';
  * Import path utilities for handling file paths across different operating systems.
  * While not all utilities are used directly, they're kept for consistency and future use.
  */
-import { normalizePath, arePathsEqual, isSubPath, join, dirname } from './utils/pathUtils';
+import { normalizePath, arePathsEqual, isSubPath, join } from './utils/pathUtils';
 
 /**
  * Import utility functions for content formatting and language detection.
  * The contentFormatUtils module handles content assembly and applies language detection
  * via the languageUtils module internally.
  */
-import {
-  formatBaseFileContent,
-  formatUserInstructionsBlock,
-  assembleCopyContent,
-} from './utils/contentFormatUtils';
 import { safeGetItem, safeSetItem, safeSetItemQuota, safeRemoveItem, safeParseJSON, isStringArray } from './utils/storage';
+import { STORAGE_KEYS } from './utils/storageKeys';
 import type { UpdateDisplayState } from './types/UpdateTypes';
 
 /* ============================== GLOBAL DECLARATIONS ============================== */
@@ -55,21 +53,6 @@ import type { UpdateDisplayState } from './types/UpdateTypes';
  * Keys used for storing app state in localStorage.
  * Keeping them in one place makes them easier to manage and update.
  */
-const STORAGE_KEYS = {
-  SELECTED_FOLDER: 'pastemax-selected-folder',
-  SELECTED_FILES: 'pastemax-selected-files',
-  SORT_ORDER: 'pastemax-sort-order',
-  SEARCH_TERM: 'pastemax-search-term',
-  EXPANDED_NODES: 'pastemax-expanded-nodes',
-  IGNORE_MODE: 'pastemax-ignore-mode',
-  IGNORE_SETTINGS_MODIFIED: 'pastemax-ignore-settings-modified',
-  INCLUDE_BINARY_PATHS: 'pastemax-include-binary-paths',
-  TASK_TYPE: STORAGE_KEY_TASK_TYPE,
-  WORKSPACES: 'pastemax-workspaces',
-  CURRENT_WORKSPACE: 'pastemax-current-workspace',
-  COPY_HISTORY: 'pastemax-copy-history',
-};
-
 /* ============================== MAIN APP COMPONENT ============================== */
 /**
  * The main App component that handles:
@@ -95,9 +78,6 @@ const App = (): JSX.Element => {
 
   /* ============================== STATE: Workspace Management ============================== */
   const [isWorkspaceManagerOpen, setIsWorkspaceManagerOpen] = useState(false);
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState(() => {
-    return safeGetItem(STORAGE_KEYS.CURRENT_WORKSPACE) || null;
-  });
   // State for confirm folder modal
   const [isConfirmUseFolderModalOpen, setIsConfirmUseFolderModalOpen] = useState(false);
   const [confirmFolderModalDetails, setConfirmFolderModalDetails] = useState<{
@@ -106,33 +86,16 @@ const App = (): JSX.Element => {
     folderPath: string;
   }>({ workspaceId: null, workspaceName: '', folderPath: '' });
 
-  const [workspaces, setWorkspaces] = useState(() => {
-    const savedWorkspaces = safeGetItem(STORAGE_KEYS.WORKSPACES);
-    if (savedWorkspaces) {
-      try {
-        const parsed = JSON.parse(savedWorkspaces);
-        if (Array.isArray(parsed)) {
-          console.log(`Initialized workspaces state with ${parsed.length} workspaces`);
-          return parsed as Workspace[];
-        } else {
-          console.warn(
-            'Invalid workspaces data in localStorage (not an array), resetting to empty array'
-          );
-          safeSetItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
-          return [] as Workspace[];
-        }
-      } catch (error) {
-        console.error('Failed to parse workspaces from localStorage during initialization:', error);
-        // Reset localStorage to prevent further errors
-        safeSetItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
-        return [] as Workspace[];
-      }
-    }
-    // Initialize with empty array and ensure localStorage has a valid value
-    console.log('No workspaces found in localStorage, initializing with empty array');
-    safeSetItem(STORAGE_KEYS.WORKSPACES, JSON.stringify([]));
-    return [] as Workspace[];
-  });
+  const {
+    workspaces,
+    currentWorkspaceId,
+    setCurrentWorkspaceId,
+    createWorkspace,
+    deleteWorkspace,
+    updateWorkspaceFolder,
+    touchWorkspace,
+    refreshWorkspacesFromStorage,
+  } = useWorkspaces();
 
   /* ============================== STATE: Ignore Patterns ============================== */
   const {
@@ -190,9 +153,21 @@ const App = (): JSX.Element => {
 
   /* ============================== STATE: User Instructions ============================== */
   const [userInstructions, setUserInstructions] = useState('');
-  const [totalFormattedContentTokens, setTotalFormattedContentTokens] = useState(0);
-  const [cachedBaseContentString, setCachedBaseContentString] = useState('');
-  const [cachedBaseContentTokens, setCachedBaseContentTokens] = useState(0);
+  // Copy pipeline: cached base content, token counts, worker lifecycle,
+  // and the assembled-content getter (extracted by plan 029).
+  const {
+    totalFormattedContentTokens,
+    getSelectedFilesContent,
+  } = useCopyPipeline({
+    allFiles,
+    selectedFiles,
+    sortOrder,
+    includeFileTree,
+    includeBinaryPaths,
+    selectedFolder,
+    userInstructions,
+    isElectron,
+  });
   /**
    * State variable used to trigger data re-fetching when its value changes.
    * The `reloadTrigger` is incremented whenever a refresh of the file list or
@@ -239,7 +214,6 @@ const App = (): JSX.Element => {
     });
 
     // Clear any session storage items
-    sessionStorage.removeItem('hasLoadedInitialData');
 
     // Reset all state to initial values
     setSelectedFolder(null);
@@ -386,7 +360,6 @@ const App = (): JSX.Element => {
 
       // If we're in safe mode, don't auto-load the previously selected folder
       if (mode.safeMode) {
-        safeRemoveItem('hasLoadedInitialData');
         safeRemoveItem(STORAGE_KEYS.SELECTED_FOLDER);
       }
     };
@@ -506,17 +479,10 @@ const App = (): JSX.Element => {
 
       // Update current workspace's folder path if a workspace is active
       if (currentWorkspaceId) {
-        // Persistence is handled by the workspaces effect below.
-        setWorkspaces((prevWorkspaces: Workspace[]) =>
-          prevWorkspaces.map((workspace: Workspace) =>
-            workspace.id === currentWorkspaceId
-              ? { ...workspace, folderPath: normalizedFolderPath, lastUsed: Date.now() }
-              : workspace
-          )
-        );
+        updateWorkspaceFolder(currentWorkspaceId, normalizedFolderPath);
       }
     },
-    [selectedFolder, allFiles, processingStatus, currentWorkspaceId]
+    [selectedFolder, allFiles, processingStatus, currentWorkspaceId, updateWorkspaceFolder]
   );
 
   // The handleFileListData function is implemented as stableHandleFileListData below
@@ -646,20 +612,14 @@ const App = (): JSX.Element => {
       }
     };
 
-    const handleBackendModeUpdateIPC = (newMode: IgnoreMode) => {
-      console.info('[App] Backend signaled ignore mode update:', newMode);
-    };
-
     window.electron.on('folder-selected', handleFolderSelectedIPC);
     window.electron.on('file-list-data', handleFileListDataIPC);
     window.electron.on('file-processing-status', handleProcessingStatusIPC);
-    window.electron.on('ignore-mode-updated', handleBackendModeUpdateIPC);
 
     return () => {
       window.electron.off('folder-selected');
       window.electron.off('file-list-data');
       window.electron.off('file-processing-status');
-      window.electron.off('ignore-mode-updated');
     };
   }, [isElectron]);
 
@@ -859,38 +819,10 @@ const App = (): JSX.Element => {
     // Normalize the folder path for cross-platform compatibility
     const normalizedFolderPath = normalizePath(folderPath);
 
-    // Function to check if a file is in the given folder or its subfolders
-    const isFileInFolder = (filePath: string, folderPath: string): boolean => {
-      // Ensure paths are normalized with consistent slashes
-      let normalizedFilePath = normalizePath(filePath);
-      let normalizedFolderPath = normalizePath(folderPath);
-
-      // Add leading slash to absolute paths if missing (common on macOS)
-      if (!normalizedFilePath.startsWith('/') && !normalizedFilePath.match(/^[a-z]:/i)) {
-        normalizedFilePath = '/' + normalizedFilePath;
-      }
-
-      if (!normalizedFolderPath.startsWith('/') && !normalizedFolderPath.match(/^[a-z]:/i)) {
-        normalizedFolderPath = '/' + normalizedFolderPath;
-      }
-
-      // A file is in the folder if:
-      // 1. The paths are equal (exact match)
-      // 2. The file path is a subpath of the folder
-      const isMatch =
-        arePathsEqual(normalizedFilePath, normalizedFolderPath) ||
-        isSubPath(normalizedFolderPath, normalizedFilePath);
-
-      if (isMatch) {
-        // File is in folder
-      }
-
-      return isMatch;
-    };
-
     // Filter all files to get only those in this folder (and subfolders) that are selectable
+    // (isSubPath from pathUtils replaces the local isFileInFolder — plan 029)
     const filesInFolder = allFiles.filter((file: FileData) => {
-      const inFolder = isFileInFolder(file.path, normalizedFolderPath);
+      const inFolder = isSubPath(normalizedFolderPath, file.path);
       const selectable =
         !file.isSkipped && !file.excludedByDefault && (includeBinaryPaths || !file.isBinary);
       return selectable && inFolder;
@@ -922,7 +854,7 @@ const App = (): JSX.Element => {
       // Removing files - filter out any file that's in our folder
       setSelectedFiles((prev: string[]) => {
         const newSelection = prev.filter(
-          (path: string) => !isFileInFolder(path, normalizedFolderPath)
+          (path: string) => !isSubPath(normalizedFolderPath, path)
         );
         return newSelection;
       });
@@ -953,13 +885,7 @@ const App = (): JSX.Element => {
    * for better LLM attention, per the v1.1.1 changelog intent.
    */
 
-  /**
-   * Assembles the final content for copying using cached base content
-   * @returns {string} The concatenated content ready for copying
-   */
-  const getSelectedFilesContent = () => {
-    return assembleCopyContent(cachedBaseContentString, userInstructions);
-  };
+  // (getSelectedFilesContent moved into useCopyPipeline by plan 029)
 
   // Handle select all files
   const selectAllFiles = () => {
@@ -1135,142 +1061,6 @@ const App = (): JSX.Element => {
     setLastExpandCollapseWasSelected(false);
   }, [selectedFolderNode, lastExpandCollapseWasSelected, expandSelectedFolder, setExpandedNodes]);
 
-  // Cache base content when file selections or formatting options change.
-  // Formatting runs in a Web Worker so megabyte-scale concatenation never
-  // blocks the UI thread (plan 025); the token-count IPC consumes the
-  // worker-produced string. Falls back to synchronous formatting if the
-  // worker cannot be created or errors.
-  const formatWorkerRef = useRef<Worker | null>(null);
-  const formatRequestIdRef = useRef(0);
-  const formatWorkerErrorRef = useRef(false);
-
-  const runTokenCountForContent = async (content: string) => {
-    if (isElectron && content) {
-      try {
-        const result = await window.electron.invoke('get-token-count', content);
-        if (result?.tokenCount !== undefined) {
-          setCachedBaseContentTokens(result.tokenCount);
-        }
-      } catch (error) {
-        console.error('Error getting base content token count:', error);
-        setCachedBaseContentTokens(0);
-      }
-    } else {
-      setCachedBaseContentTokens(0);
-    }
-  };
-
-  const getFormatWorker = () => {
-    if (formatWorkerRef.current || formatWorkerErrorRef.current) {
-      return formatWorkerRef.current;
-    }
-    try {
-      const worker = new Worker(new URL('./utils/formatWorker.ts', import.meta.url), {
-        type: 'module',
-      });
-      worker.onmessage = (e: MessageEvent) => {
-        const { id, content, error } = e.data as {
-          id: number;
-          content?: string;
-          error?: string;
-        };
-        if (id !== formatRequestIdRef.current) return; // stale response
-        if (error) {
-          console.error('Format worker error, falling back to sync formatting:', error);
-          formatWorkerErrorRef.current = true;
-          worker.terminate();
-          formatWorkerRef.current = null;
-          return;
-        }
-        setCachedBaseContentString(content || '');
-        void runTokenCountForContent(content || '');
-      };
-      formatWorkerRef.current = worker;
-      return worker;
-    } catch (err) {
-      console.error('Failed to create format worker, using sync formatting:', err);
-      formatWorkerErrorRef.current = true;
-      return null;
-    }
-  };
-
-  useEffect(() => {
-    const updateBaseContent = async () => {
-      const params = {
-        files: allFiles,
-        selectedFiles,
-        sortOrder,
-        includeFileTree,
-        includeBinaryPaths,
-        selectedFolder,
-      };
-
-      const worker = getFormatWorker();
-      if (worker) {
-        const id = ++formatRequestIdRef.current;
-        worker.postMessage({ id, params });
-        return;
-      }
-
-      // Fallback: synchronous formatting (original path).
-      const baseContent = formatBaseFileContent(params);
-      setCachedBaseContentString(baseContent);
-      await runTokenCountForContent(baseContent);
-    };
-
-    const debounceTimer = setTimeout(updateBaseContent, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [
-    allFiles,
-    selectedFiles,
-    sortOrder,
-    includeFileTree,
-    includeBinaryPaths,
-    selectedFolder,
-    isElectron,
-  ]);
-
-  // Terminate the worker on unmount.
-  useEffect(
-    () => () => {
-      formatWorkerRef.current?.terminate();
-      formatWorkerRef.current = null;
-    },
-    []
-  );
-
-  // Calculate total tokens when user instructions change
-  useEffect(() => {
-    const calculateAndSetTokenCount = async () => {
-      const instructionsBlock = formatUserInstructionsBlock(userInstructions);
-
-      if (isElectron) {
-        try {
-          let totalTokens = cachedBaseContentTokens;
-
-          // Only calculate instruction tokens if there are instructions
-          if (instructionsBlock) {
-            const instructionResult = await window.electron.invoke(
-              'get-token-count',
-              instructionsBlock
-            );
-            totalTokens += instructionResult?.tokenCount || 0;
-          }
-
-          setTotalFormattedContentTokens(totalTokens);
-        } catch (error) {
-          console.error('Error getting token count:', error);
-          setTotalFormattedContentTokens(0);
-        }
-      } else {
-        setTotalFormattedContentTokens(0);
-      }
-    };
-
-    const debounceTimer = setTimeout(calculateAndSetTokenCount, 150);
-    return () => clearTimeout(debounceTimer);
-  }, [userInstructions, cachedBaseContentTokens, isElectron]);
-
   // ============================== Update Modal State ==============================
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [updateStatus, setUpdateStatus] = useState(null as UpdateDisplayState | null);
@@ -1335,19 +1125,7 @@ const App = (): JSX.Element => {
   // Workspace functions
   const handleOpenWorkspaceManager = () => {
     // Force reload workspaces from localStorage before opening
-    const storedWorkspaces = safeGetItem(STORAGE_KEYS.WORKSPACES);
-    if (storedWorkspaces) {
-      try {
-        const parsed = JSON.parse(storedWorkspaces);
-        if (Array.isArray(parsed)) {
-          // Update state with a fresh copy from localStorage
-          setWorkspaces(parsed);
-          console.log('Workspaces refreshed from localStorage before opening manager');
-        }
-      } catch (error) {
-        console.error('Failed to parse workspaces from localStorage:', error);
-      }
-    }
+    refreshWorkspacesFromStorage();
 
     // Open the workspace manager
     setIsWorkspaceManagerOpen(true);
@@ -1362,13 +1140,8 @@ const App = (): JSX.Element => {
     safeSetItem(STORAGE_KEYS.CURRENT_WORKSPACE, workspaceId);
     setCurrentWorkspaceId(workspaceId);
 
-    // Update last used timestamp using functional state update
-    // (persistence handled by the workspaces effect)
-    setWorkspaces((currentWorkspaces: Workspace[]) =>
-      currentWorkspaces.map((w: Workspace) =>
-        w.id === workspaceId ? { ...w, lastUsed: Date.now() } : w
-      )
-    );
+    // Update last used timestamp via the hook (persistence handled by its effect)
+    touchWorkspace(workspaceId);
 
     // If the workspace has a folder associated with it
     if (workspace.folderPath) {
@@ -1411,24 +1184,8 @@ const App = (): JSX.Element => {
   };
 
   const handleCreateWorkspace = (name: string) => {
-    console.log('App: Creating new workspace with name:', name);
-
-    // Create a new workspace with a unique id
-    const newWorkspace = {
-      id: `workspace-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      name,
-      folderPath: null,
-      createdAt: Date.now(),
-      lastUsed: Date.now(),
-    };
-
-    // Add to workspaces list (persistence handled by the workspaces effect)
-    setWorkspaces((currentWorkspaces: Workspace[]) => {
-      console.log('Updating workspaces state, current count:', currentWorkspaces.length);
-      const updatedWorkspaces = [...currentWorkspaces, newWorkspace];
-      console.log('Saved updated workspaces to localStorage, new count:', updatedWorkspaces.length);
-      return updatedWorkspaces;
-    });
+    // Create the workspace (persistence handled by the hook's effect)
+    const newWorkspace = createWorkspace(name);
 
     // Set as current workspace
     safeSetItem(STORAGE_KEYS.CURRENT_WORKSPACE, newWorkspace.id);
@@ -1496,16 +1253,9 @@ const App = (): JSX.Element => {
     const workspaceBeingDeleted = workspaces.find((w: Workspace) => w.id === workspaceId);
     console.log('Deleting workspace:', workspaceBeingDeleted?.name);
 
-    // Filter out the deleted workspace, using functional update to prevent stale state
-    // (persistence handled by the workspaces effect, including the empty-array case)
-    setWorkspaces((currentWorkspaces: Workspace[]) => {
-      const filteredWorkspaces = currentWorkspaces.filter((w: Workspace) => w.id !== workspaceId);
-      console.log(
-        `Filtered workspaces: ${currentWorkspaces.length} -> ${filteredWorkspaces.length}`
-      );
-      console.log('Saved filtered workspaces to localStorage');
-      return filteredWorkspaces;
-    });
+    // Remove the workspace (persistence handled by the hook's effect,
+    // including the empty-array case)
+    deleteWorkspace(workspaceId);
 
     // (Removed workspaceManagerVersion increment)
 
@@ -1534,14 +1284,8 @@ const App = (): JSX.Element => {
 
   // Handler to update a workspace's folder path
   const handleUpdateWorkspaceFolder = (workspaceId: string, folderPath: string | null) => {
-    // (persistence handled by the workspaces effect)
-    setWorkspaces((prevWorkspaces: Workspace[]) =>
-      prevWorkspaces.map((workspace: Workspace) =>
-        workspace.id === workspaceId
-          ? { ...workspace, folderPath, lastUsed: Date.now() }
-          : workspace
-      )
-    );
+    // (persistence handled by the hook's workspaces effect)
+    updateWorkspaceFolder(workspaceId, folderPath);
 
     // If updating the current workspace, also update the selected folder
     if (currentWorkspaceId === workspaceId) {
@@ -1670,23 +1414,6 @@ const App = (): JSX.Element => {
     setSelectedModelId(modelId);
     safeSetItem('pastemax-selected-model', modelId);
   };
-
-  // Persist workspaces when they change
-  useEffect(() => {
-    if (workspaces) {
-      safeSetItem(STORAGE_KEYS.WORKSPACES, JSON.stringify(workspaces));
-
-      // Log information for debugging purposes
-      console.log(`Workspaces updated: ${workspaces.length} workspaces saved to localStorage`);
-
-      // If we have a current workspace, ensure it still exists in the workspaces array
-      if (currentWorkspaceId && !workspaces.some((w: Workspace) => w.id === currentWorkspaceId)) {
-        console.log('Current workspace no longer exists, clearing currentWorkspaceId');
-        safeRemoveItem(STORAGE_KEYS.CURRENT_WORKSPACE);
-        setCurrentWorkspaceId(null);
-      }
-    }
-  }, [workspaces, currentWorkspaceId]);
 
   /* ===================================================================== */
   /* ============================== RENDER =============================== */
