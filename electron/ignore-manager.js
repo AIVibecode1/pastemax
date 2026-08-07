@@ -463,6 +463,7 @@ module.exports = {
   createAutomaticIgnoreFilter, // utils
   isPathIgnoredByActiveFilter, // Utils
   isPathExcludedByDefaults, // Utils
+  globalModeExclusionFilter, // exported for equivalence tests (plan 026)
   compiledIgnoreFilterCache, // Cache for ignore filters
   clearIgnoreCaches, // clear ignore caches
 };
