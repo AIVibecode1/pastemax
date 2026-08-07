@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { safeParseJSON, isStringArray, safeGetItem, safeSetItem, safeRemoveItem } from '../storage';
+import {
+  safeParseJSON,
+  isStringArray,
+  safeGetItem,
+  safeSetItem,
+  safeSetItemQuota,
+  safeRemoveItem,
+} from '../storage';
 
 /**
  * A minimal in-memory localStorage stub for the helper tests.
@@ -85,5 +92,21 @@ describe('safe localStorage helpers', () => {
     stub._store.set('k', 'v');
     safeRemoveItem('k');
     expect(stub._store.has('k')).toBe(false);
+  });
+
+  it('safeSetItemQuota reports ok, quota, and error distinctly', () => {
+    expect(safeSetItemQuota('k', 'v')).toBe('ok');
+    expect(stub._store.get('k')).toBe('v');
+
+    stub.setItem.mockImplementation(() => {
+      const e = new DOMException('quota', 'QuotaExceededError');
+      throw e;
+    });
+    expect(safeSetItemQuota('k', 'v')).toBe('quota');
+
+    stub.setItem.mockImplementation(() => {
+      throw new Error('other failure');
+    });
+    expect(safeSetItemQuota('k', 'v')).toBe('error');
   });
 });

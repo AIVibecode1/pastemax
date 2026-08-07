@@ -45,7 +45,7 @@ import {
   formatUserInstructionsBlock,
   assembleCopyContent,
 } from './utils/contentFormatUtils';
-import { safeGetItem, safeSetItem, safeRemoveItem, safeParseJSON, isStringArray } from './utils/storage';
+import { safeGetItem, safeSetItem, safeSetItemQuota, safeRemoveItem, safeParseJSON, isStringArray } from './utils/storage';
 import type { UpdateDisplayState } from './types/UpdateTypes';
 
 /* ============================== GLOBAL DECLARATIONS ============================== */
@@ -1514,29 +1514,59 @@ const App = (): JSX.Element => {
   const handleCopy = async () => {
     if (selectedFiles.length === 0) return;
 
+    const content = getSelectedFilesContent();
+
+    // 1. Clipboard first — the primary action. Its failure is the only
+    //    "copy failed" case.
     try {
-      const content = getSelectedFilesContent();
       await navigator.clipboard.writeText(content);
-      setProcessingStatus({ status: 'complete', message: 'Copied to clipboard!' });
-
-      // Add to copy history
-      const newHistoryItem: CopyHistoryItem = {
-        content,
-        timestamp: Date.now(),
-        label: `${selectedFiles.length} files`,
-      };
-
-      const updatedHistory = [newHistoryItem, ...copyHistory].slice(0, 20); // Keep last 20 items
-      setCopyHistory(updatedHistory);
-      safeSetItem(STORAGE_KEYS.COPY_HISTORY, JSON.stringify(updatedHistory));
-
-      // Reset the status after 2 seconds
-      setTimeout(() => {
-        setProcessingStatus({ status: 'idle', message: '' });
-      }, 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
       setProcessingStatus({ status: 'error', message: 'Failed to copy to clipboard' });
+      return;
+    }
+
+    setProcessingStatus({ status: 'complete', message: 'Copied to clipboard!' });
+
+    // Reset the status after 2 seconds (independent of history persistence).
+    setTimeout(() => {
+      setProcessingStatus({ status: 'idle', message: '' });
+    }, 2000);
+
+    // 2. Copy history persistence — best effort. A quota failure must never
+    //    report a failed copy: on QuotaExceededError drop the oldest entries,
+    //    and as a last resort store a truncated version of the new entry.
+    const newHistoryItem: CopyHistoryItem = {
+      content,
+      timestamp: Date.now(),
+      label: `${selectedFiles.length} files`,
+    };
+    try {
+      let updatedHistory = [newHistoryItem, ...copyHistory].slice(0, 20); // Keep last 20 items
+      let result = safeSetItemQuota(STORAGE_KEYS.COPY_HISTORY, JSON.stringify(updatedHistory));
+
+      while (result === 'quota' && updatedHistory.length > 1) {
+        updatedHistory = updatedHistory.slice(1); // drop oldest
+        result = safeSetItemQuota(STORAGE_KEYS.COPY_HISTORY, JSON.stringify(updatedHistory));
+      }
+
+      if (result === 'quota') {
+        // Even the single new entry exceeds quota: store a truncated copy.
+        const truncatedItem: CopyHistoryItem = {
+          ...newHistoryItem,
+          content: newHistoryItem.content.slice(0, 50000) + '\n[...truncated for storage]',
+          label: `${newHistoryItem.label} (truncated)`,
+        };
+        updatedHistory = [truncatedItem];
+        result = safeSetItemQuota(STORAGE_KEYS.COPY_HISTORY, JSON.stringify(updatedHistory));
+      }
+
+      setCopyHistory(updatedHistory);
+      if (result === 'error') {
+        console.warn('Failed to persist copy history');
+      }
+    } catch (err) {
+      console.warn('Failed to persist copy history:', err);
     }
   };
 

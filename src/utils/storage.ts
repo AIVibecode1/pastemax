@@ -40,6 +40,22 @@ export function safeSetItem(key: string, value: string): boolean {
   }
 }
 
+/**
+ * Like safeSetItem but reports the failure reason, so callers can react to
+ * quota errors specifically (e.g. drop-oldest retry for copy history).
+ * @returns 'ok' | 'quota' (QuotaExceededError) | 'error' (anything else)
+ */
+export function safeSetItemQuota(key: string, value: string): 'ok' | 'quota' | 'error' {
+  try {
+    localStorage.setItem(key, value);
+    return 'ok';
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'QuotaExceededError') return 'quota';
+    console.warn(`[storage] Failed to persist '${key}':`, err);
+    return 'error';
+  }
+}
+
 export function safeRemoveItem(key: string): void {
   try {
     localStorage.removeItem(key);
