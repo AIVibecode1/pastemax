@@ -554,23 +554,28 @@ function createWindow() {
     },
   });
 
-  // Open external links in user's default browser
+  // Open external links in user's default browser; deny everything else.
+  // Deny-by-default: file:, data:, about: and custom schemes never navigate.
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (url.startsWith('http:') || url.startsWith('https:')) {
+    if (url.startsWith('https:') || url.startsWith('http:')) {
       if (mainWindow.webContents.getURL() !== url) {
         event.preventDefault();
         shell.openExternal(url);
       }
+      return;
     }
+    // Anything else (file:, data:, about:, devtools:, custom schemes): block.
+    event.preventDefault();
   });
 
-  // Handle requests to open a new window (e.g., target="_blank")
+  // Handle requests to open a new window (e.g., target="_blank").
+  // http(s) links open in the default browser; every other scheme is denied
+  // (a file:/data: window would inherit this window's webPreferences+preload).
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http:') || url.startsWith('https:')) {
+    if (url.startsWith('https:') || url.startsWith('http:')) {
       shell.openExternal(url);
-      return { action: 'deny' };
     }
-    return { action: 'allow' };
+    return { action: 'deny' };
   });
 
   // Set up window event handlers
