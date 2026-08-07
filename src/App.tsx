@@ -10,7 +10,7 @@ import ThemeToggle from './components/ThemeToggle';
 import UpdateModal from './components/UpdateModal';
 import { useIgnorePatterns } from './hooks/useIgnorePatterns';
 import UserInstructions from './components/UserInstructions';
-import { STORAGE_KEY_TASK_TYPE } from './types/TaskTypes';
+import { STORAGE_KEY_TASK_TYPE, DEFAULT_TASK_TYPES, STORAGE_KEY_CUSTOM_TASK_TYPES } from './types/TaskTypes';
 import {
   DownloadCloud,
   ArrowDownUp,
@@ -84,7 +84,6 @@ const App = (): JSX.Element => {
   const savedFolder = safeGetItem(STORAGE_KEYS.SELECTED_FOLDER);
   const savedSortOrder = safeGetItem(STORAGE_KEYS.SORT_ORDER);
   const savedSearchTerm = safeGetItem(STORAGE_KEYS.SEARCH_TERM);
-  // const savedTaskType = safeGetItem(STORAGE_KEYS.TASK_TYPE); // Removed this line
   // const savedIgnoreMode = safeGetItem(STORAGE_KEYS.IGNORE_MODE); no longer needed
 
   /* ============================== STATE: Core App State ============================== */
@@ -177,7 +176,16 @@ const App = (): JSX.Element => {
   /* ============================== STATE: UI Controls ============================== */
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [isSafeMode, setIsSafeMode] = useState(false);
-  const [selectedTaskType, setSelectedTaskType] = useState('');
+  const [selectedTaskType, setSelectedTaskType] = useState(() => {
+    const saved = safeGetItem(STORAGE_KEYS.TASK_TYPE);
+    if (!saved) return '';
+    // Restore only known task types: built-in ids or existing custom types.
+    if (DEFAULT_TASK_TYPES.some((type) => type.id === saved)) return saved;
+    const rawCustom = safeGetItem(STORAGE_KEY_CUSTOM_TASK_TYPES);
+    const custom = safeParseJSON<{ id?: string }[]>(rawCustom, []);
+    if (Array.isArray(custom) && custom.some((type) => type && type.id === saved)) return saved;
+    return '';
+  });
   const [isCustomTaskTypeModalOpen, setIsCustomTaskTypeModalOpen] = useState(false);
 
   /* ============================== STATE: User Instructions ============================== */
