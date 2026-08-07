@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useIgnorePatterns } from '../hooks/useIgnorePatterns';
 // ToggleSwitch is now defined below
 
 interface IgnoreModeToggleProps {
@@ -31,6 +30,11 @@ interface IgnoreListModalProps {
   selectedFolder: string | null;
   isElectron: boolean;
   ignoreSettingsModified: boolean;
+  // Shared ignore state (single useIgnorePatterns instance in App — plan 030)
+  ignoreMode: 'automatic' | 'global';
+  onIgnoreModeChange: (mode: 'automatic' | 'global') => void;
+  customIgnores: string[];
+  onCustomIgnoresChange: (patterns: string[]) => void;
 }
 
 interface PatternSectionProps {
@@ -108,12 +112,12 @@ export const IgnoreListModal = ({
   selectedFolder,
   isElectron,
   ignoreSettingsModified,
+  ignoreMode,
+  onIgnoreModeChange: setIgnoreMode,
+  customIgnores,
+  onCustomIgnoresChange: setCustomIgnores,
 }: IgnoreListModalProps): JSX.Element | null => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { ignoreMode, setIgnoreMode, customIgnores, setCustomIgnores } = useIgnorePatterns(
-    selectedFolder,
-    isElectron
-  );
   const [customIgnoreInput, setCustomIgnoreInput] = useState('');
   const initialIgnoreModeRef = useRef(ignoreMode);
   const initialIgnoreSettingsModifiedRef = useRef(ignoreSettingsModified);
@@ -127,17 +131,6 @@ export const IgnoreListModal = ({
       initialCustomIgnoresRef.current = customIgnores;
     }
   }, [isOpen]); // leave as is
-
-  // Log the received patterns prop for debugging
-  useEffect(() => {
-    if (isOpen) {
-      console.log('DEBUG: IgnoreListModal received patterns:', JSON.stringify(patterns, null, 2));
-      // Only log gitignoreMap entries when in automatic mode
-      if (ignoreMode === 'automatic' && patterns?.gitignoreMap) {
-        console.log('DEBUG: gitignoreMap entries:', Object.keys(patterns.gitignoreMap).length);
-      }
-    }
-  }, [isOpen, patterns, ignoreMode]);
 
   // Reset search when modal is closed
   useEffect(() => {

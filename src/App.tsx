@@ -105,7 +105,9 @@ const App = (): JSX.Element => {
     handleViewIgnorePatterns,
     closeIgnoreViewer,
     ignoreMode,
+    setIgnoreMode,
     customIgnores,
+    setCustomIgnores,
     ignoreSettingsModified,
     resetIgnoreSettingsModified,
   } = useIgnorePatterns(selectedFolder, isElectron);
@@ -626,10 +628,9 @@ const App = (): JSX.Element => {
   /* ============================== HANDLERS & UTILITIES ============================== */
 
   /**
-   * Handles closing the ignore patterns viewer and conditionally reloading the app
-   * @param changesMade - Whether ignore patterns were modified, requiring a reload
-   * @remarks The setTimeout wrapping window.location.reload() allows the UI to update
-   * with the "Applying ignore mode..." status message before the reload occurs
+   * Handles closing the ignore patterns viewer and applying changes via a
+   * targeted re-scan instead of a full page reload (plan 030).
+   * @param changesMade - Whether ignore patterns were modified
    */
   const handleIgnoreViewerClose = useCallback(
     (changesMade?: boolean) => {
@@ -646,11 +647,11 @@ const App = (): JSX.Element => {
         window.electron.send('set-ignore-mode', ignoreMode);
         window.electron.send('clear-ignore-cache');
 
-        if (changesMade) {
-          // Use setTimeout to allow UI to update with "Applying ignore mode..." status before reload
-          // Increased timeout to 800ms to ensure UI updates are visible
-          setTimeout(() => window.location.reload(), 800);
-        }
+        // Re-scan the current folder with the fresh ignore state. The
+        // request-file-list effect below re-fires on reloadTrigger and resets
+        // ignoreSettingsModified after sending; no page reload needed, so
+        // selection/expanded state survive.
+        setReloadTrigger((t) => t + 1);
       }
     },
     [isElectron, closeIgnoreViewer, ignoreMode]
@@ -1744,6 +1745,10 @@ const App = (): JSX.Element => {
           selectedFolder={selectedFolder}
           isElectron={isElectron}
           ignoreSettingsModified={ignoreSettingsModified}
+          ignoreMode={ignoreMode}
+          onIgnoreModeChange={setIgnoreMode}
+          customIgnores={customIgnores}
+          onCustomIgnoresChange={setCustomIgnores}
         />
         <UpdateModal
           isOpen={isUpdateModalOpen}
