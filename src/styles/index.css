@@ -175,6 +175,25 @@ body {
 }
 
 /* ==========================================================================
+   Focus visibility (plan 031): every keyboard-focusable element gets the
+   token focus ring. :focus-visible keeps mouse clicks free of rings.
+   ========================================================================== */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--border-radius-sm);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ==========================================================================
    Layout Structure (App Container, Header, Main Content, Sidebar, Content Area)
    ========================================================================== */
 
