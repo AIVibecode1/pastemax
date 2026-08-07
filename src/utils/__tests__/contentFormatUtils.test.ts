@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { formatBaseFileContent, formatUserInstructionsBlock } from '../contentFormatUtils';
+import {
+  formatBaseFileContent,
+  formatUserInstructionsBlock,
+  assembleCopyContent,
+} from '../contentFormatUtils';
 import { FileData } from '../../types/FileTypes';
 
 /**
@@ -137,5 +141,35 @@ describe('formatUserInstructionsBlock', () => {
     expect(formatUserInstructionsBlock('  Fix the bug  ')).toBe(
       '<user_instructions>\nFix the bug\n</user_instructions>\n'
     );
+  });
+});
+
+describe('assembleCopyContent', () => {
+  it('returns empty string when both inputs are empty', () => {
+    expect(assembleCopyContent('', '')).toBe('');
+    expect(assembleCopyContent('', '   ')).toBe('');
+  });
+
+  it('returns base content unchanged when instructions are empty', () => {
+    expect(assembleCopyContent('<file_contents>\n</file_contents>\n', '')).toBe(
+      '<file_contents>\n</file_contents>\n'
+    );
+  });
+
+  it('puts the instructions block FIRST, then a blank line, then base content', () => {
+    const out = assembleCopyContent('<file_contents>\n</file_contents>\n', 'Fix the bug');
+    expect(out).toBe(
+      '<user_instructions>\nFix the bug\n</user_instructions>\n\n<file_contents>\n</file_contents>\n'
+    );
+  });
+
+  it('returns only the instructions block when base content is empty', () => {
+    expect(assembleCopyContent('', 'Fix the bug')).toBe(
+      '<user_instructions>\nFix the bug\n</user_instructions>\n'
+    );
+  });
+
+  it('treats whitespace-only instructions as empty', () => {
+    expect(assembleCopyContent('base', '   ')).toBe('base');
   });
 });

@@ -40,7 +40,11 @@ import { normalizePath, arePathsEqual, isSubPath, join, dirname } from './utils/
  * The contentFormatUtils module handles content assembly and applies language detection
  * via the languageUtils module internally.
  */
-import { formatBaseFileContent, formatUserInstructionsBlock } from './utils/contentFormatUtils';
+import {
+  formatBaseFileContent,
+  formatUserInstructionsBlock,
+  assembleCopyContent,
+} from './utils/contentFormatUtils';
 import type { UpdateDisplayState } from './types/UpdateTypes';
 
 /* ============================== GLOBAL DECLARATIONS ============================== */
@@ -942,8 +946,8 @@ const App = (): JSX.Element => {
 
   /**
    * State for storing user instructions
-   * This text will be appended at the end of all copied content
-   * to provide context or special notes to recipients
+   * This text is placed FIRST in the copied content (top of prompt)
+   * for better LLM attention, per the v1.1.1 changelog intent.
    */
 
   /**
@@ -951,11 +955,7 @@ const App = (): JSX.Element => {
    * @returns {string} The concatenated content ready for copying
    */
   const getSelectedFilesContent = () => {
-    return (
-      cachedBaseContentString +
-      (cachedBaseContentString && userInstructions.trim() ? '\n\n' : '') +
-      formatUserInstructionsBlock(userInstructions)
-    );
+    return assembleCopyContent(cachedBaseContentString, userInstructions);
   };
 
   // Handle select all files
