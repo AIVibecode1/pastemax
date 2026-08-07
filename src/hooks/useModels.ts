@@ -16,8 +16,10 @@ export function useModels() {
   // Get the selected model
   const selectedModel = models.find((model: ModelInfo) => model.id === selectedModelId);
 
-  // Load models on initial mount
+  // Load models once on mount (plan 025): selecting a model must not re-fetch.
   useEffect(() => {
+    let cancelled = false;
+
     const loadModels = async () => {
       setIsLoading(true);
       setError(null);
@@ -25,26 +27,31 @@ export function useModels() {
       try {
         const fetchedModels = await fetchModels();
 
+        if (cancelled) return;
+
         if (fetchedModels && fetchedModels.length > 0) {
           setModels(fetchedModels);
 
-          // Auto-select the first model if none is selected
-          if (!selectedModelId) {
-            setSelectedModelId(fetchedModels[0].id);
-          }
+          // Auto-select the first model if none is selected (functional update,
+          // so the effect has no dependency on selectedModelId).
+          setSelectedModelId((current) => current || fetchedModels[0].id);
         } else {
           setError('Failed to load models');
         }
       } catch (err) {
+        if (cancelled) return;
         setError('Error loading models');
         console.error('Error loading models:', err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     loadModels();
-  }, [selectedModelId]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Force reload models
   const refreshModels = async () => {

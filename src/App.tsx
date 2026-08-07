@@ -1135,33 +1135,87 @@ const App = (): JSX.Element => {
     setLastExpandCollapseWasSelected(false);
   }, [selectedFolderNode, lastExpandCollapseWasSelected, expandSelectedFolder, setExpandedNodes]);
 
-  // Cache base content when file selections or formatting options change
+  // Cache base content when file selections or formatting options change.
+  // Formatting runs in a Web Worker so megabyte-scale concatenation never
+  // blocks the UI thread (plan 025); the token-count IPC consumes the
+  // worker-produced string. Falls back to synchronous formatting if the
+  // worker cannot be created or errors.
+  const formatWorkerRef = useRef<Worker | null>(null);
+  const formatRequestIdRef = useRef(0);
+  const formatWorkerErrorRef = useRef(false);
+
+  const runTokenCountForContent = async (content: string) => {
+    if (isElectron && content) {
+      try {
+        const result = await window.electron.invoke('get-token-count', content);
+        if (result?.tokenCount !== undefined) {
+          setCachedBaseContentTokens(result.tokenCount);
+        }
+      } catch (error) {
+        console.error('Error getting base content token count:', error);
+        setCachedBaseContentTokens(0);
+      }
+    } else {
+      setCachedBaseContentTokens(0);
+    }
+  };
+
+  const getFormatWorker = () => {
+    if (formatWorkerRef.current || formatWorkerErrorRef.current) {
+      return formatWorkerRef.current;
+    }
+    try {
+      const worker = new Worker(new URL('./utils/formatWorker.ts', import.meta.url), {
+        type: 'module',
+      });
+      worker.onmessage = (e: MessageEvent) => {
+        const { id, content, error } = e.data as {
+          id: number;
+          content?: string;
+          error?: string;
+        };
+        if (id !== formatRequestIdRef.current) return; // stale response
+        if (error) {
+          console.error('Format worker error, falling back to sync formatting:', error);
+          formatWorkerErrorRef.current = true;
+          worker.terminate();
+          formatWorkerRef.current = null;
+          return;
+        }
+        setCachedBaseContentString(content || '');
+        void runTokenCountForContent(content || '');
+      };
+      formatWorkerRef.current = worker;
+      return worker;
+    } catch (err) {
+      console.error('Failed to create format worker, using sync formatting:', err);
+      formatWorkerErrorRef.current = true;
+      return null;
+    }
+  };
+
   useEffect(() => {
     const updateBaseContent = async () => {
-      const baseContent = formatBaseFileContent({
+      const params = {
         files: allFiles,
         selectedFiles,
         sortOrder,
         includeFileTree,
         includeBinaryPaths,
         selectedFolder,
-      });
+      };
 
-      setCachedBaseContentString(baseContent);
-
-      if (isElectron && baseContent) {
-        try {
-          const result = await window.electron.invoke('get-token-count', baseContent);
-          if (result?.tokenCount !== undefined) {
-            setCachedBaseContentTokens(result.tokenCount);
-          }
-        } catch (error) {
-          console.error('Error getting base content token count:', error);
-          setCachedBaseContentTokens(0);
-        }
-      } else {
-        setCachedBaseContentTokens(0);
+      const worker = getFormatWorker();
+      if (worker) {
+        const id = ++formatRequestIdRef.current;
+        worker.postMessage({ id, params });
+        return;
       }
+
+      // Fallback: synchronous formatting (original path).
+      const baseContent = formatBaseFileContent(params);
+      setCachedBaseContentString(baseContent);
+      await runTokenCountForContent(baseContent);
     };
 
     const debounceTimer = setTimeout(updateBaseContent, 300);
@@ -1175,6 +1229,15 @@ const App = (): JSX.Element => {
     selectedFolder,
     isElectron,
   ]);
+
+  // Terminate the worker on unmount.
+  useEffect(
+    () => () => {
+      formatWorkerRef.current?.terminate();
+      formatWorkerRef.current = null;
+    },
+    []
+  );
 
   // Calculate total tokens when user instructions change
   useEffect(() => {
