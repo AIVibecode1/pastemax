@@ -547,16 +547,23 @@ async function readFilesRecursively(
     }
   } catch (err) {
     console.error(`Error reading directory ${dir}:`, err);
-    if (err.code === 'EPERM' || err.code === 'EACCES') {
-      console.log(`Skipping inaccessible directory: ${dir}`);
-      return { results: [], progress };
+    const isTopLevel = dir === rootDir;
+    if (isTopLevel) {
+      // A failure to read the root is a user-facing failure, not a partial scan.
+      // The caller (main.js request-file-list handler) turns the throw into an
+      // 'error' status message instead of a false "Found 0 files" success.
+      throw err;
     }
-  }
-
-  // Cleanup queue if it was initialized in this call
-  if (shouldCleanupQueue) {
-    await queueToUse.onIdle();
-    queueToUse.clear();
+    // Nested directory: tolerate, skip it, keep scanning.
+    console.log(`Skipping inaccessible directory: ${dir}`);
+    return { results: [], progress };
+  } finally {
+    // Cleanup queue if it was initialized in this call (runs on both
+    // success, per-directory tolerance, and top-level rethrow).
+    if (shouldCleanupQueue) {
+      await queueToUse.onIdle();
+      queueToUse.clear();
+    }
   }
 
   return { results, progress };
