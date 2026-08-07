@@ -473,7 +473,16 @@ ipcMain.handle('fetch-models', async () => {
   try {
     const fetch = require('node-fetch');
     console.log('Fetching models from OpenRouter API in main process...');
-    const response = await fetch('https://openrouter.ai/api/v1/models');
+
+    // Bound the request: a stalled connection must not hang the IPC forever.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    let response;
+    try {
+      response = await fetch('https://openrouter.ai/api/v1/models', { signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);

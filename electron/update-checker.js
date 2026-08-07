@@ -81,6 +81,11 @@ async function checkForUpdates() {
         });
       });
 
+      // Bound the request: a stalled connection must not hang the IPC forever.
+      req.setTimeout(10000, () => {
+        req.destroy(new Error('Update check timed out after 10 seconds'));
+      });
+
       req.on('error', (error) => {
         reject(new Error(`Network error while checking for updates: ${error.message}`));
       });
