@@ -1,6 +1,11 @@
 // Preload script
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Tracks wrappers registered by the compat `on` so removeListener can remove
+// the EXACT function that ipcRenderer.on received (wrapping `func` again in
+// removeListener can never match). One owner per channel; see `receive`.
+const compatListenerWrappers = new Map(); // channel -> Set<wrapper>
+
 // Helper function to ensure data is serializable
 function ensureSerializable(data) {
   if (data === null || data === undefined) {
@@ -66,7 +71,9 @@ contextBridge.exposeInMainWorld('electron', {
       'file-removed',
     ];
     if (validChannels.includes(channel)) {
-      // Remove any existing listeners to avoid duplicates
+      // EXCLUSIVE OWNER semantics: removeAllListeners wipes ANY other listener
+      // on this channel (including compat `on` registrations). Only one
+      // component may receive a channel; never mix receive() with compat `on`.
       ipcRenderer.removeAllListeners(channel);
       // Add the new listener
       ipcRenderer.on(channel, (event, ...args) => func(...args));
@@ -89,10 +96,15 @@ contextBridge.exposeInMainWorld('electron', {
         }
       };
       ipcRenderer.on(channel, wrapper);
-      // Store the wrapper function for removal later
+      // Store the wrapper for later removal (removeListener must pass the
+      // exact same function reference to ipcRenderer.removeListener).
+      if (!compatListenerWrappers.has(channel)) {
+        compatListenerWrappers.set(channel, new Set());
+      }
+      compatListenerWrappers.get(channel).add(wrapper);
       return wrapper;
     },
-    removeListener: (channel, func) => {
+    removeListener: (channel, _func) => {
       const validChannels = [
         'folder-selected',
         'file-list-data',
@@ -101,9 +113,18 @@ contextBridge.exposeInMainWorld('electron', {
         'file-added',
         'file-updated',
         'file-removed',
+        'initial-update-status',
+        'ignore-mode-updated',
       ];
       if (validChannels.includes(channel)) {
-        ipcRenderer.removeListener(channel, (event, ...args) => func(...args));
+        // The renderer registers at most one listener per channel per mount;
+        // remove all stored wrappers for the channel (the exact references).
+        const wrappers = compatListenerWrappers.get(channel);
+        if (!wrappers) return;
+        for (const wrapper of wrappers) {
+          ipcRenderer.removeListener(channel, wrapper);
+        }
+        compatListenerWrappers.delete(channel);
       }
     },
     // PATCH: Allow invoke for 'check-for-updates' as well as 'get-ignore-patterns'
