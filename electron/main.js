@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const watcher = require('./watcher.js');
 const { getUpdateStatus, resetUpdateSessionState } = require('./update-manager');
+const confirmedFolders = require('./confirmed-folders.js');
 // GlobalModeExclusion is now in ignore-manager.js
 
 // Configuration constants
@@ -189,6 +190,8 @@ ipcMain.on('open-folder', async (event, arg) => {
   if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
     const rawPath = result.filePaths[0];
     const normalizedPath = normalizePath(rawPath);
+    // Record this as a user-confirmed folder (persisted across restarts).
+    confirmedFolders.addConfirmedRoot(normalizedPath);
     try {
       console.log('Sending folder-selected event with normalized path:', normalizedPath);
       event.sender.send('folder-selected', normalizedPath);
@@ -228,6 +231,18 @@ if (!ipcMain.eventNames().includes('get-ignore-patterns')) {
       try {
         let patterns;
         const normalizedPath = ensureAbsolutePath(folderPath);
+
+        // Folder-consent boundary: refuse to read ignore files for paths the
+        // user never confirmed via the folder dialog.
+        let stat;
+        try {
+          stat = await fs.promises.stat(normalizedPath);
+        } catch {
+          return { error: 'Folder not found or no longer accessible.' };
+        }
+        if (!stat.isDirectory() || !confirmedFolders.isConfirmed(normalizedPath)) {
+          return { error: 'Folder not confirmed. Please re-select it using the folder picker.' };
+        }
 
         if (mode === 'global') {
           // For UI display consistency, include DEFAULT_PATTERNS here as well.
@@ -325,6 +340,33 @@ ipcMain.on('request-file-list', async (event, payload) => {
         message: 'Already processing another directory. Please wait.',
       });
     }
+    return;
+  }
+
+  // Folder-consent boundary: only scan paths the user confirmed via the
+  // native folder dialog (this session or a previous one, persisted).
+  const folderPath = payload?.folderPath;
+  if (typeof folderPath !== 'string' || !folderPath.trim()) {
+    event.sender.send('file-processing-status', {
+      status: 'error',
+      message: 'Folder not confirmed. Please re-select it using the folder picker.',
+    });
+    return;
+  }
+  try {
+    const folderStat = await fs.promises.stat(folderPath);
+    if (!folderStat.isDirectory() || !confirmedFolders.isConfirmed(folderPath)) {
+      event.sender.send('file-processing-status', {
+        status: 'error',
+        message: 'Folder not confirmed. Please re-select it using the folder picker.',
+      });
+      return;
+    }
+  } catch {
+    event.sender.send('file-processing-status', {
+      status: 'error',
+      message: 'Folder not found or no longer accessible. Please re-select it.',
+    });
     return;
   }
 
@@ -703,6 +745,8 @@ function createWindow() {
 // APP LIFECYCLE
 // ======================
 app.whenReady().then(() => {
+  // Load the user-confirmed folder set (folder-consent boundary).
+  confirmedFolders.init(app.getPath('userData'));
   createWindow();
 
   app.on('activate', () => {
