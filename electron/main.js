@@ -525,14 +525,21 @@ let mainWindow;
 function createWindow() {
   const isSafeMode = process.argv.includes('--safe-mode');
 
-  // Set CSP header for all environments
+  // Set CSP header for all environments.
+  // Production is strict (no 'unsafe-inline'); the Vite build emits only
+  // external scripts/styles. Dev keeps 'unsafe-inline' + localhost for HMR.
+  // NOTE: Google Fonts sources stay until plan 031 self-hosts fonts; every
+  // future renderer-side network call must be added to connect-src explicitly.
+  const isDev = process.env.NODE_ENV === 'development';
+  const csp = isDev
+    ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:* ws://localhost:*; object-src 'none';"
+    : "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none';";
+
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:* ws://localhost:* https://openrouter.ai/*; object-src 'none';",
-        ],
+        'Content-Security-Policy': [csp],
       },
     });
   });
