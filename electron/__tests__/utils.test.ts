@@ -36,17 +36,22 @@ describe('electron normalizePath', () => {
   });
 });
 
-describe('electron isWSLPath (CURRENT behavior — plan 009 flips this)', () => {
-  it('returns false for normalized //wsl paths today (the bug)', () => {
-    // The function tests for the \\ form AFTER normalizePath already converted
-    // to // form, so it never matches. Plan 009 changes these assertions.
-    expect(utils.isWSLPath('//wsl.localhost/Ubuntu/x')).toBe(false);
-    expect(utils.isWSLPath('//wsl$/Ubuntu/x')).toBe(false);
+describe('electron isWSLPath (intended behavior — plan 009)', () => {
+  it('returns true for normalized //wsl paths', () => {
+    expect(utils.isWSLPath('//wsl.localhost/Ubuntu/x')).toBe(true);
+    expect(utils.isWSLPath('//wsl$/Ubuntu/x')).toBe(true);
   });
 
-  it('returns false for raw backslash WSL paths today (the bug)', () => {
-    expect(utils.isWSLPath('\\\\wsl.localhost\\Ubuntu\\x')).toBe(false);
-    expect(utils.isWSLPath('\\\\wsl$\\Ubuntu\\x')).toBe(false);
+  it('returns true for raw backslash WSL paths (normalized internally)', () => {
+    expect(utils.isWSLPath('\\\\wsl.localhost\\Ubuntu\\x')).toBe(true);
+    expect(utils.isWSLPath('\\\\wsl$\\Ubuntu\\x')).toBe(true);
+  });
+
+  it('returns true for bare WSL roots', () => {
+    expect(utils.isWSLPath('//wsl.localhost')).toBe(true);
+    expect(utils.isWSLPath('//wsl$')).toBe(true);
+    expect(utils.isWSLPath('\\\\wsl.localhost')).toBe(true);
+    expect(utils.isWSLPath('\\\\wsl$')).toBe(true);
   });
 
   it('returns false for non-WSL paths', () => {

@@ -8,7 +8,15 @@ const path = require('path');
 function isWSLPath(filePath) {
   if (!filePath) return false;
   const normalized = normalizePath(filePath);
-  return normalized.startsWith('\\\\wsl.localhost/') || normalized.startsWith('\\\\wsl$/');
+  // normalizePath converts both \\wsl.localhost\... and \\wsl$\... to the
+  // // form on every platform, so checking the normalized prefixes covers all
+  // four input shapes (raw backslash and forward-slash, both hosts).
+  return (
+    normalized === '//wsl.localhost' ||
+    normalized === '//wsl$' ||
+    normalized.startsWith('//wsl.localhost/') ||
+    normalized.startsWith('//wsl$/')
+  );
 }
 
 /**
