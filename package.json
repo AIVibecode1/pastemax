@@ -30,7 +30,8 @@
     "update:all": "npm update --save && npm update --save-dev",
     "format:all": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "clipboard",
