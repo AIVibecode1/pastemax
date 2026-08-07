@@ -1,10 +1,37 @@
 // Preload script
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Tracks wrappers registered by the compat `on` so removeListener can remove
-// the EXACT function that ipcRenderer.on received (wrapping `func` again in
-// removeListener can never match). One owner per channel; see `receive`.
-const compatListenerWrappers = new Map(); // channel -> Set<wrapper>
+// ==========================================================================
+// IPC CONTRACT: every channel the renderer may use MUST be listed below AND
+// handled in electron/main.js. Add new channels to BOTH sides together.
+// ==========================================================================
+const IPC = {
+  SEND: [
+    'open-folder',
+    'request-file-list',
+    'debug-file-selection',
+    'cancel-directory-loading',
+    'set-ignore-mode',
+    'clear-ignore-cache',
+    'clear-main-cache',
+  ],
+  RECEIVE: [
+    'folder-selected',
+    'file-list-data',
+    'file-processing-status',
+    'startup-mode',
+    'file-added',
+    'file-updated',
+    'file-removed',
+    'initial-update-status',
+    'ignore-mode-updated',
+  ],
+  INVOKE: ['check-for-updates', 'get-ignore-patterns', 'get-token-count', 'fetch-models'],
+};
+
+// Tracks wrappers registered by `on` so `off` can remove the EXACT function
+// that ipcRenderer.on received. One owner per channel; see `receive`.
+const listenerWrappers = new Map(); // channel -> Set<wrapper>
 
 // Helper function to ensure data is serializable
 function ensureSerializable(data) {
@@ -38,109 +65,83 @@ function ensureSerializable(data) {
 }
 
 // Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
+// the ipcRenderer without exposing the entire object.
+// Every exposed method enforces the IPC whitelist above.
 contextBridge.exposeInMainWorld('electron', {
   /**
-   * Invokes the main process to check for application updates.
-   * @returns {Promise<object>} A promise that resolves to an object containing update status.
-   * Expected format: { isUpdateAvailable: boolean, currentVersion: string, latestVersion?: string, releaseUrl?: string, error?: string }
+   * Sends a fire-and-forget IPC message (whitelisted channels only).
    */
-  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   send: (channel, data) => {
-    // whitelist channels
-    const validChannels = [
-      'open-folder',
-      'request-file-list',
-      'debug-file-selection',
-      'cancel-directory-loading',
-    ];
-    if (validChannels.includes(channel)) {
-      // Ensure data is serializable before sending
-      const serializedData = ensureSerializable(data);
-      ipcRenderer.send(channel, serializedData);
+    if (IPC.SEND.includes(channel)) {
+      ipcRenderer.send(channel, ensureSerializable(data));
+    } else {
+      console.warn(`[preload] Blocked send on unlisted channel: ${channel}`);
     }
   },
+
+  /**
+   * Registers a one-per-channel listener (whitelisted channels only).
+   * Only one component may own a channel via `on`; `receive` is the
+   * exclusive-owner alternative (it wipes other listeners on the channel).
+   */
+  on: (channel, func) => {
+    if (!IPC.RECEIVE.includes(channel)) {
+      console.warn(`[preload] Blocked on() for unlisted channel: ${channel}`);
+      return null;
+    }
+    const wrapper = (event, ...args) => {
+      try {
+        // Don't pass the event object to the callback, only the serialized args
+        const serializedArgs = args.map(ensureSerializable);
+        func(...serializedArgs);
+      } catch (err) {
+        console.error(`Error in IPC handler for channel ${channel}:`, err);
+      }
+    };
+    ipcRenderer.on(channel, wrapper);
+    if (!listenerWrappers.has(channel)) {
+      listenerWrappers.set(channel, new Set());
+    }
+    listenerWrappers.get(channel).add(wrapper);
+    return wrapper;
+  },
+
+  /**
+   * Removes all listeners for a channel registered via `on` (whitelisted only).
+   */
+  off: (channel) => {
+    if (!IPC.RECEIVE.includes(channel)) {
+      return;
+    }
+    const wrappers = listenerWrappers.get(channel);
+    if (!wrappers) return;
+    for (const wrapper of wrappers) {
+      ipcRenderer.removeListener(channel, wrapper);
+    }
+    listenerWrappers.delete(channel);
+  },
+
+  /**
+   * EXCLUSIVE OWNER listener registration: removeAllListeners wipes ANY other
+   * listener on the channel (including `on` registrations). Only one component
+   * may receive a channel; never mix receive() with on() on the same channel.
+   */
   receive: (channel, func) => {
-    const validChannels = [
-      'folder-selected',
-      'file-list-data',
-      'file-processing-status',
-      'startup-mode',
-      'file-added',
-      'file-updated',
-      'file-removed',
-    ];
-    if (validChannels.includes(channel)) {
-      // EXCLUSIVE OWNER semantics: removeAllListeners wipes ANY other listener
-      // on this channel (including compat `on` registrations). Only one
-      // component may receive a channel; never mix receive() with compat `on`.
+    if (IPC.RECEIVE.includes(channel)) {
       ipcRenderer.removeAllListeners(channel);
-      // Add the new listener
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     }
   },
-  // For backward compatibility (but still ensure serialization)
-  ipcRenderer: {
-    send: (channel, data) => {
-      const serializedData = ensureSerializable(data);
-      ipcRenderer.send(channel, serializedData);
-    },
-    on: (channel, func) => {
-      const wrapper = (event, ...args) => {
-        try {
-          // Don't pass the event object to the callback, only pass the serialized args
-          const serializedArgs = args.map(ensureSerializable);
-          func(...serializedArgs); // Only pass the serialized args, not the event
-        } catch (err) {
-          console.error(`Error in IPC handler for channel ${channel}:`, err);
-        }
-      };
-      ipcRenderer.on(channel, wrapper);
-      // Store the wrapper for later removal (removeListener must pass the
-      // exact same function reference to ipcRenderer.removeListener).
-      if (!compatListenerWrappers.has(channel)) {
-        compatListenerWrappers.set(channel, new Set());
-      }
-      compatListenerWrappers.get(channel).add(wrapper);
-      return wrapper;
-    },
-    removeListener: (channel) => {
-      const validChannels = [
-        'folder-selected',
-        'file-list-data',
-        'file-processing-status',
-        'startup-mode',
-        'file-added',
-        'file-updated',
-        'file-removed',
-        'initial-update-status',
-        'ignore-mode-updated',
-      ];
-      if (validChannels.includes(channel)) {
-        // The renderer registers at most one listener per channel per mount;
-        // remove all stored wrappers for the channel (the exact references).
-        const wrappers = compatListenerWrappers.get(channel);
-        if (!wrappers) return;
-        for (const wrapper of wrappers) {
-          ipcRenderer.removeListener(channel, wrapper);
-        }
-        compatListenerWrappers.delete(channel);
-      }
-    },
-    // PATCH: Allow invoke for 'check-for-updates' as well as 'get-ignore-patterns'
-    invoke: (channel, data) => {
-      const validChannels = [
-        'get-ignore-patterns',
-        'check-for-updates',
-        'get-token-count',
-        'fetch-models',
-      ]; // Added 'fetch-models'
-      if (validChannels.includes(channel)) {
-        return ipcRenderer.invoke(channel, data);
-      }
-      // Optionally, you could add a console.warn or throw an error for unhandled channels
-      console.warn(`[preload.js] Attempted to invoke unhandled channel: ${channel}`);
-      return Promise.reject(new Error(`Unhandled IPC invoke channel: ${channel}`));
-    },
+
+  /**
+   * Invokes a request/response IPC call (whitelisted channels only).
+   * @returns {Promise<unknown>} Resolves to the main-process result.
+   */
+  invoke: (channel, data) => {
+    if (IPC.INVOKE.includes(channel)) {
+      return ipcRenderer.invoke(channel, ensureSerializable(data));
+    }
+    console.warn(`[preload] Blocked invoke on unlisted channel: ${channel}`);
+    return Promise.reject(new Error(`Unhandled IPC invoke channel: ${channel}`));
   },
 });

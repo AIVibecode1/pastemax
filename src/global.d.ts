@@ -5,15 +5,17 @@
 export {}; // make this a module
 
 // Global types for Electron API
+// The preload (electron/preload.js) exposes only whitelisted channels via
+// send/on/off/receive/invoke. Keep this declaration in sync with the IPC
+// whitelist constants in that file.
 declare global {
   interface Window {
     electron: {
-      ipcRenderer: {
-        send: (channel: string, data?: any) => void;
-        on: (channel: string, func: (...args: any[]) => void) => void;
-        removeListener: (channel: string, func: (...args: any[]) => void) => void;
-        invoke: (channel: string, ...args: any[]) => Promise<any>;
-      };
+      send: (channel: string, data?: unknown) => void;
+      on: (channel: string, func: (...args: any[]) => void) => unknown;
+      off: (channel: string) => void;
+      receive: (channel: string, func: (...args: any[]) => void) => void;
+      invoke: (channel: string, data?: unknown) => Promise<any>;
     };
   }
 }

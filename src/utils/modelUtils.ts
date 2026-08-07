@@ -25,7 +25,7 @@ export async function fetchModels(): Promise<ModelInfo[] | null> {
     }
 
     // Fetch models via IPC
-    const models = await window.electron.ipcRenderer.invoke('fetch-models');
+    const models = await window.electron.invoke('fetch-models');
 
     if (models && models.length > 0) {
       cacheModels(models);

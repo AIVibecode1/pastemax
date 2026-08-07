@@ -60,7 +60,7 @@ export function useIgnorePatterns(selectedFolder: string | null, isElectron: boo
   const setIgnoreMode = (mode: IgnoreMode) => {
     if (typeof window !== 'undefined') {
       if (isElectron) {
-        window.electron.ipcRenderer.send('clear-ignore-cache');
+        window.electron.send('clear-ignore-cache');
       }
       localStorage.setItem('pastemax-ignore-mode', mode);
       localStorage.setItem('pastemax-ignore-settings-modified', 'true');
@@ -109,7 +109,7 @@ export function useIgnorePatterns(selectedFolder: string | null, isElectron: boo
   const setCustomIgnores = (newIgnores: string[] | ((prevIgnores: string[]) => string[])) => {
     _setCustomIgnores(newIgnores);
     if (typeof window !== 'undefined' && isElectron) {
-      window.electron.ipcRenderer.send('clear-ignore-cache');
+      window.electron.send('clear-ignore-cache');
     }
     _setIgnoreSettingsModified(true);
   };
@@ -138,7 +138,7 @@ export function useIgnorePatterns(selectedFolder: string | null, isElectron: boo
     console.log('Custom ignores:', customIgnores);
 
     try {
-      const result = await window.electron.ipcRenderer.invoke('get-ignore-patterns', {
+      const result = await window.electron.invoke('get-ignore-patterns', {
         folderPath: selectedFolder,
         mode: ignoreMode,
         customIgnores: ignoreMode === 'global' ? customIgnores : [],

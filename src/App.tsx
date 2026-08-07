@@ -254,8 +254,8 @@ const App = (): JSX.Element => {
 
     // Also cancel any ongoing directory loading and clear main process caches
     if (isElectron) {
-      window.electron.ipcRenderer.send('cancel-directory-loading');
-      window.electron.ipcRenderer.send('clear-main-cache');
+      window.electron.send('cancel-directory-loading');
+      window.electron.send('clear-main-cache');
     }
 
     // Clear current workspace but keep workspaces list intact
@@ -391,10 +391,10 @@ const App = (): JSX.Element => {
       }
     };
 
-    window.electron.ipcRenderer.on('startup-mode', handleStartupMode);
+    window.electron.on('startup-mode', handleStartupMode);
 
     return () => {
-      window.electron.ipcRenderer.removeListener('startup-mode', handleStartupMode);
+      window.electron.off('startup-mode');
     };
   }, [isElectron]);
 
@@ -438,7 +438,7 @@ const App = (): JSX.Element => {
         ignoreSettingsModified, // Send the current state
       });
       lastSentIgnoreSettingsModifiedRef.current = ignoreSettingsModified;
-      window.electron.ipcRenderer.send('request-file-list', {
+      window.electron.send('request-file-list', {
         folderPath: selectedFolder,
         ignoreMode,
         customIgnores,
@@ -650,19 +650,16 @@ const App = (): JSX.Element => {
       console.info('[App] Backend signaled ignore mode update:', newMode);
     };
 
-    window.electron.ipcRenderer.on('folder-selected', handleFolderSelectedIPC);
-    window.electron.ipcRenderer.on('file-list-data', handleFileListDataIPC);
-    window.electron.ipcRenderer.on('file-processing-status', handleProcessingStatusIPC);
-    window.electron.ipcRenderer.on('ignore-mode-updated', handleBackendModeUpdateIPC);
+    window.electron.on('folder-selected', handleFolderSelectedIPC);
+    window.electron.on('file-list-data', handleFileListDataIPC);
+    window.electron.on('file-processing-status', handleProcessingStatusIPC);
+    window.electron.on('ignore-mode-updated', handleBackendModeUpdateIPC);
 
     return () => {
-      window.electron.ipcRenderer.removeListener('folder-selected', handleFolderSelectedIPC);
-      window.electron.ipcRenderer.removeListener('file-list-data', handleFileListDataIPC);
-      window.electron.ipcRenderer.removeListener(
-        'file-processing-status',
-        handleProcessingStatusIPC
-      );
-      window.electron.ipcRenderer.removeListener('ignore-mode-updated', handleBackendModeUpdateIPC);
+      window.electron.off('folder-selected');
+      window.electron.off('file-list-data');
+      window.electron.off('file-processing-status');
+      window.electron.off('ignore-mode-updated');
     };
   }, [isElectron]);
 
@@ -686,8 +683,8 @@ const App = (): JSX.Element => {
 
       if (isElectron) {
         console.info('Applying ignore mode:');
-        window.electron.ipcRenderer.send('set-ignore-mode', ignoreMode);
-        window.electron.ipcRenderer.send('clear-ignore-cache');
+        window.electron.send('set-ignore-mode', ignoreMode);
+        window.electron.send('clear-ignore-cache');
 
         if (changesMade) {
           // Use setTimeout to allow UI to update with "Applying ignore mode..." status before reload
@@ -701,7 +698,7 @@ const App = (): JSX.Element => {
 
   const cancelDirectoryLoading = useCallback(() => {
     if (isElectron) {
-      window.electron.ipcRenderer.send('cancel-directory-loading');
+      window.electron.send('cancel-directory-loading');
       setProcessingStatus({
         status: 'idle',
         message: 'Directory loading cancelled',
@@ -714,7 +711,7 @@ const App = (): JSX.Element => {
       console.log('Opening folder dialog');
       setProcessingStatus({ status: 'idle', message: 'Select a folder...' });
       // Send the last selected folder to the main process for smarter defaultPath logic
-      window.electron.ipcRenderer.send('open-folder', {
+      window.electron.send('open-folder', {
         lastSelectedFolder: selectedFolder,
       });
     } else {
@@ -826,12 +823,10 @@ const App = (): JSX.Element => {
       { event: 'file-removed', handler: handleFileRemoved },
     ];
 
-    listeners.forEach(({ event, handler }) => window.electron.ipcRenderer.on(event, handler));
+    listeners.forEach(({ event, handler }) => window.electron.on(event, handler));
 
     return () => {
-      listeners.forEach(({ event, handler }) =>
-        window.electron.ipcRenderer.removeListener(event, handler)
-      );
+      listeners.forEach(({ event }) => window.electron.off(event));
     };
   }, [isElectron, handleFileAdded, handleFileUpdated, handleFileRemoved]);
 
@@ -1156,7 +1151,7 @@ const App = (): JSX.Element => {
 
       if (isElectron && baseContent) {
         try {
-          const result = await window.electron.ipcRenderer.invoke('get-token-count', baseContent);
+          const result = await window.electron.invoke('get-token-count', baseContent);
           if (result?.tokenCount !== undefined) {
             setCachedBaseContentTokens(result.tokenCount);
           }
@@ -1192,7 +1187,7 @@ const App = (): JSX.Element => {
 
           // Only calculate instruction tokens if there are instructions
           if (instructionsBlock) {
-            const instructionResult = await window.electron.ipcRenderer.invoke(
+            const instructionResult = await window.electron.invoke(
               'get-token-count',
               instructionsBlock
             );
@@ -1229,9 +1224,9 @@ const App = (): JSX.Element => {
     const handler = (result: any) => {
       setInitialAutoUpdateResult(result as UpdateDisplayState);
     };
-    window.electron.ipcRenderer.on('initial-update-status', handler);
+    window.electron.on('initial-update-status', handler);
     return () => {
-      window.electron.ipcRenderer.removeListener('initial-update-status', handler);
+      window.electron.off('initial-update-status');
     };
   }, [isElectron]);
 
@@ -1251,7 +1246,7 @@ const App = (): JSX.Element => {
     }));
 
     try {
-      const result = await window.electron.ipcRenderer.invoke('check-for-updates');
+      const result = await window.electron.invoke('check-for-updates');
       setUpdateStatus({
         ...result,
         isLoading: false,
@@ -1330,7 +1325,7 @@ const App = (): JSX.Element => {
           });
 
           // Ensure we're sending the updated folder path to the main process
-          window.electron.ipcRenderer.send('request-file-list', {
+          window.electron.send('request-file-list', {
             folderPath: workspace.folderPath,
             ignoreMode,
             customIgnores,
