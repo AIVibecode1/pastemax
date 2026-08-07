@@ -243,10 +243,20 @@ async function processDirectory({
 
   if (!isPathIgnoredByActiveFilter(fullPath, rootDir, filterToUse)) {
     progress.directories++;
-    window.webContents.send('file-processing-status', {
-      status: 'processing',
-      message: `Scanning directories (${progress.directories} processed)... (Press ESC to cancel)`,
-    });
+
+    // Throttle per-directory status IPC: parallel directory walks can emit
+    // hundreds of messages per second; one per STATUS_UPDATE_INTERVAL keeps
+    // the renderer responsive while progress stays current (plan 027). The
+    // file-level status below shares the same throttle window.
+    const now = Date.now();
+    if (now - lastStatusUpdateTime > STATUS_UPDATE_INTERVAL) {
+      lastStatusUpdateTime = now;
+      window.webContents.send('file-processing-status', {
+        status: 'processing',
+        message: `Scanning directories (${progress.directories} processed)... (Press ESC to cancel)`,
+      });
+    }
+
     return readFilesRecursively(
       fullPath,
       rootDir,
