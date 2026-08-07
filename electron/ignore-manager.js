@@ -24,6 +24,14 @@ const rawGitignorePatternsCache = new Map(); // Cache for already found/processe
 // Pre-compiled default ignore filter for early checks using the imported DEFAULT_PATTERNS
 const systemDefaultFilter = ignore().add(DEFAULT_PATTERNS);
 
+// Precompiled ignore() instance for GlobalModeExclusion (global mode).
+// Built once at module load instead of per-file during scans (plan 026).
+// Null when the list is empty: ignore() with no patterns misbehaves.
+const globalModeExclusionFilter =
+  GlobalModeExclusion && GlobalModeExclusion.length > 0
+    ? ignore().add(GlobalModeExclusion)
+    : null;
+
 /**
  * The function `isPathExcludedByDefaults` checks if a file path should be excluded based on various
  * criteria such as OS-specific checks, reserved names, default patterns, and global mode exclusions.
@@ -87,14 +95,10 @@ function isPathExcludedByDefaults(filePath, rootDir, ignoreMode) {
   }
 
   // If in 'global' mode, also check against GlobalModeExclusion
-  if (ignoreMode === 'global') {
-    // It's important that GlobalModeExclusion are not empty, otherwise ignore() might behave unexpectedly.
-    if (GlobalModeExclusion && GlobalModeExclusion.length > 0) {
-      const globalExcludedFilesFilter = ignore().add(GlobalModeExclusion);
-      if (globalExcludedFilesFilter.ignores(relativePath)) {
-        // console.log(`[isPathExcludedByDefaults] Excluded by GlobalModeExclusion (Global Mode): ${relativePath}`);
-        return true;
-      }
+  if (ignoreMode === 'global' && globalModeExclusionFilter) {
+    if (globalModeExclusionFilter.ignores(relativePath)) {
+      // console.log(`[isPathExcludedByDefaults] Excluded by GlobalModeExclusion (Global Mode): ${relativePath}`);
+      return true;
     }
   }
 
