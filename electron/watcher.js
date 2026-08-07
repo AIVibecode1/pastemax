@@ -1,5 +1,5 @@
 const chokidar = require('chokidar');
-const { debounce } = require('lodash');
+const { debounce } = require('./utils.js');
 
 const { normalizePath, safeRelativePath } = require('./utils.js');
 const { removeFileCacheEntry } = require('./file-processor.js'); // Changed import

@@ -84,9 +84,27 @@ function isValidPath(pathToCheck) {
   }
 }
 
+/**
+ * Simple trailing debounce (replaces the lodash debounce usage).
+ * @param {Function} fn
+ * @param {number} waitMs
+ * @returns {Function}
+ */
+function debounce(fn, waitMs) {
+  let timer = null;
+  return (...args) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      fn(...args);
+    }, waitMs);
+  };
+}
+
 module.exports = {
   isWSLPath,
   isMacAppBundlePath,
+  debounce,
   normalizePath,
   ensureAbsolutePath,
   safeRelativePath,

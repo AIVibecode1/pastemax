@@ -3,7 +3,6 @@ try {
   // Test loading key dependencies
   require('ignore');
   require('tiktoken');
-  require('gpt-3-encoder');
 } catch (err) {
   console.error(`\n❌ Missing dependency: ${err.message}`);
   console.error('Please run: npm install\n');

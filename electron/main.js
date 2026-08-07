@@ -513,7 +513,6 @@ ipcMain.on('request-file-list', async (event, payload) => {
 // Handle fetch-models request from renderer
 ipcMain.handle('fetch-models', async () => {
   try {
-    const fetch = require('node-fetch');
     console.log('Fetching models from OpenRouter API in main process...');
 
     // Bound the request: a stalled connection must not hang the IPC forever.
