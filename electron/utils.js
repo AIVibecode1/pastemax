@@ -35,9 +35,11 @@ function isMacAppBundlePath(filePath) {
 function normalizePath(filePath) {
   if (!filePath) return filePath;
 
-  if (process.platform === 'win32' && filePath.startsWith('\\\\')) {
+  if (filePath.startsWith('\\\\')) {
     // For paths like \\wsl.localhost\foo or \\network\share\foo
     // This converts them to //wsl.localhost/foo or //network/share/foo
+    // Platform-independent: the app's path model is forward-slash based
+    // everywhere (raw backslash input can arrive from any OS config file).
     return '//' + filePath.slice(2).replace(/\\/g, '/');
   }
 
