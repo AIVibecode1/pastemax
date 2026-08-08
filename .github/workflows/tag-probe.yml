@@ -1,0 +1,16 @@
+name: Tag Event Probe
+
+on:
+  push:
+    tags:
+      - 'probe-*'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tag event received
+        run: echo "probe fired for ${{ github.ref_name }}"
