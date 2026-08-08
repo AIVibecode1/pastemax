@@ -74,3 +74,6 @@ repomix.config.json
 
 # Local tooling and agent skill copies (not part of the project)
 .agents/
+
+# Working notes and plan documents (kept local only, not part of the project)
+plans/

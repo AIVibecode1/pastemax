@@ -56,7 +56,7 @@ Changes made by AIVibecode on top of the original PasteMax (see README fork noti
 ### UI / Visual
 
 - Self-hosted **Geist + Geist Mono** variable fonts (no Google Fonts network requests).
-- Refined palette: off-black text, single tuned accent, hue-consistent grays, tinted shadows, desaturated status colors (WCAG AA contrast spot-checks recorded in `plans/031-ui-redesign-diagnosis.md`).
+- Refined palette: off-black text, single tuned accent, hue-consistent grays, tinted shadows, desaturated status colors (WCAG AA contrast spot-checks recorded in the diagnosis document).
 - Tabular figures for token and file counts; global `:focus-visible` keyboard rings; 12 inline styles migrated to classes; modal z-index values tokenized.
 
 ---
