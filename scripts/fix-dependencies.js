@@ -7,46 +7,9 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
-const path = require('path');
 
 console.log('🔧 PasteMax Dependency Fixer');
 console.log('============================');
-
-// Define the dependencies we need to ensure are installed
-const criticalDependencies = ['ignore', 'tiktoken'];
-
-// Get the application path (platform-dependent)
-function getAppResourcesPath() {
-  const platform = process.platform;
-  let appPath;
-
-  try {
-    if (platform === 'darwin') {
-      // macOS
-      const homeDir = process.env.HOME;
-      const appDir = '/Applications/PasteMax.app/Contents/Resources/app.asar.unpacked';
-      appPath = path.join(appDir, 'node_modules');
-    } else if (platform === 'win32') {
-      // Windows
-      const programFiles = process.env['ProgramFiles'];
-      appPath = path.join(
-        programFiles,
-        'PasteMax',
-        'resources',
-        'app.asar.unpacked',
-        'node_modules'
-      );
-    } else {
-      // Linux
-      appPath = '/usr/lib/pastemax/resources/app.asar.unpacked/node_modules';
-    }
-
-    return appPath;
-  } catch (err) {
-    console.error('❌ Could not determine application path:', err.message);
-    return null;
-  }
-}
 
 // Ensure dependencies are installed properly
 function fixDependencies() {

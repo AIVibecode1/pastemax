@@ -45,7 +45,7 @@ async function runTests() {
 
   // Test 1: File Addition
   console.log('📝 Test 1: File Addition');
-  const testFile1 = createTestFile('watcher-test-1.txt', 'Initial content for test file 1');
+  createTestFile('watcher-test-1.txt', 'Initial content for test file 1');
   await wait(2000);
 
   // Test 2: File Modification

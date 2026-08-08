@@ -1714,7 +1714,6 @@ const App = (): JSX.Element => {
           patterns={ignorePatterns ?? undefined}
           error={ignorePatternsError ?? undefined}
           selectedFolder={selectedFolder}
-          isElectron={isElectron}
           ignoreSettingsModified={ignoreSettingsModified}
           ignoreMode={ignoreMode}
           onIgnoreModeChange={setIgnoreMode}

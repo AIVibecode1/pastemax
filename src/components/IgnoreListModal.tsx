@@ -28,7 +28,6 @@ interface IgnoreListModalProps {
   };
   error?: string;
   selectedFolder: string | null;
-  isElectron: boolean;
   ignoreSettingsModified: boolean;
   // Shared ignore state (single useIgnorePatterns instance in App — plan 030)
   ignoreMode: 'automatic' | 'global';
@@ -110,7 +109,6 @@ export const IgnoreListModal = ({
   patterns,
   error,
   selectedFolder,
-  isElectron,
   ignoreSettingsModified,
   ignoreMode,
   onIgnoreModeChange: setIgnoreMode,

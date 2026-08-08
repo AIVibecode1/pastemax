@@ -32,30 +32,31 @@ npm run release
 
 ### Releasing This Fork (v1.2.0 and later)
 
-This fork is released from the AIVibecode1 GitHub account. The original project's release flow still applies, plus these steps:
+This fork is released from the AIVibecode1 GitHub account. The `.github/workflows/build.yml` workflow does the heavy lifting: when you push a version tag, it runs the full quality suite (typecheck, strict lint, tests) on three platforms, builds the installers (Windows NSIS + portable, macOS dmg/zip, Linux AppImage/deb/rpm), and creates a draft GitHub release with every artifact attached.
+
+The steps are:
 
 1. Bump the version in `package.json` (for example, `"version": "1.2.0"`).
 2. Update `CHANGELOG.md` with the new version heading and date.
-3. Rebuild the installers and test them:
-
-```bash
-npm run test-build:win
-```
-
-4. Test the built `.exe` files in `release-builds` on your machine (the installer and the portable version).
-5. Commit the version bump and docs, then tag and push:
+3. Commit and push the code, then push the tag:
 
 ```bash
 git add -A
 git commit -m "release: v1.2.0"
-git tag v1.2.0
 git push origin master
+git tag v1.2.0
 git push origin v1.2.0
 ```
 
-6. Create the release on GitHub (github.com/AIVibecode1/pastemax/releases/new) and attach the installers from `release-builds`.
+4. Wait for the "Build and Release" workflow to finish (about 15-25 minutes, three platforms in parallel). You can watch it under the Actions tab.
+5. Open the draft release it created (Releases page, "Draft" tab), check the notes and the attached installers, then click **Publish release**.
 
-Note: the release URL in `electron/update-checker.js` and the badge links in `README.md` must point at the account that publishes the releases. For this fork, that is `AIVibecode1/pastemax`.
+Notes:
+
+- The release is created as a DRAFT on purpose, so you can review it before it goes public. The in-app update checker only sees published releases.
+- Tests, typecheck, and strict lint all run in CI before packaging. If any of them fail, no release is created.
+- The workflow builds unsigned apps (no code signing certificate), which matches the app's existing "Not trusted" behavior on Windows.
+- If you bump Electron or other packages that run install scripts, npm may block those scripts on fresh installs (npm 11.16+ behavior). The approved list lives in `package.json` under `allowScripts`; when the version changes, run `npm approve-scripts --allow-scripts-pending` and commit the updated list.
 
 ### Platform-Specific Notes
 

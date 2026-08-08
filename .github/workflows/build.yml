@@ -7,26 +7,24 @@ on:
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
-  packages: write
 
 jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 18
+          node-version: 24
           cache: 'npm'
 
       - name: Install dependencies
@@ -38,6 +36,8 @@ jobs:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
           key: ${{ runner.os }}-electron-cache-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-electron-cache-
@@ -48,22 +48,28 @@ jobs:
       - name: Lint
         run: npm run lint:strict
 
+      - name: Test
+        run: npm test
+
       - name: Build Vite app
         run: npm run build
 
-      # macOS build
+      # macOS build (unsigned by design; signing disabled so CI never
+      # fails on a missing certificate)
       - name: Build macOS app
         if: matrix.os == 'macos-latest'
         run: npm run package:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
-      # Windows build
+      # Windows build (NSIS installer + portable)
       - name: Build Windows app
         if: matrix.os == 'windows-latest'
         run: npm run package:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       # Linux build
       - name: Build Linux app
@@ -75,7 +81,7 @@ jobs:
       # Upload artifacts for each platform
       - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-artifacts
           path: |
@@ -87,7 +93,7 @@ jobs:
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows-artifacts
           path: |
@@ -99,7 +105,7 @@ jobs:
 
       - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: linux-artifacts
           path: |
@@ -120,19 +126,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: macos-artifacts
           path: release-artifacts/macos
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: windows-artifacts
           path: release-artifacts/windows
 
       - name: Download Linux artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: linux-artifacts
           path: release-artifacts/linux
@@ -142,7 +148,6 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             release-artifacts/macos/*

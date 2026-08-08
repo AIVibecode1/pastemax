@@ -117,7 +117,7 @@ async function cancelDirectoryLoading(window, reason = 'user') {
 // ======================
 // IPC HANDLERS
 // ======================
-ipcMain.handle('check-for-updates', async (event) => {
+ipcMain.handle('check-for-updates', async () => {
   console.log("Main Process: IPC 'check-for-updates' handler INVOKED.");
   try {
     const updateStatus = await getUpdateStatus();

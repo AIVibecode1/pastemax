@@ -46,6 +46,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps): JSX.Element => 
 };
 
 // Custom hook to use the theme context
+// eslint-disable-next-line react-refresh/only-export-components -- context modules legitimately export hooks next to providers
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
