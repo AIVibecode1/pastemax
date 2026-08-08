@@ -44,7 +44,9 @@ export function useCopyPipeline({
     async (content: string) => {
       if (isElectron && content) {
         try {
-          const result = await window.electron.invoke('get-token-count', content);
+          const result = (await window.electron.invoke('get-token-count', content)) as {
+            tokenCount?: number;
+          };
           if (result?.tokenCount !== undefined) {
             setCachedBaseContentTokens(result.tokenCount);
           }
@@ -151,10 +153,12 @@ export function useCopyPipeline({
 
           // Only calculate instruction tokens if there are instructions
           if (instructionsBlock) {
-            const instructionResult = await window.electron.invoke(
+            const instructionResult = (await window.electron.invoke(
               'get-token-count',
               instructionsBlock
-            );
+            )) as {
+              tokenCount?: number;
+            };
             totalTokens += instructionResult?.tokenCount || 0;
           }
 

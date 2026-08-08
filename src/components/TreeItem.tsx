@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { TreeItemProps, TreeNode } from '../types/FileTypes';
+import { FileData, TreeItemProps, TreeNode } from '../types/FileTypes';
 import { ChevronRight, File, Folder } from 'lucide-react';
 import { arePathsEqual } from '../utils/pathUtils';
 
@@ -7,7 +7,7 @@ import { arePathsEqual } from '../utils/pathUtils';
  * Helper function to determine if a file should be excluded from selection
  * based on its properties and the includeBinaryPaths setting
  */
-const isFileExcluded = (fileData: any, includeBinaryPaths: boolean): boolean => {
+const isFileExcluded = (fileData: FileData | undefined, includeBinaryPaths: boolean): boolean => {
   if (!fileData) return false;
 
   return (
@@ -176,7 +176,7 @@ const TreeItem = ({
 
   // Event Handlers - memoize them to prevent recreating on each render
   const handleToggle = useCallback(
-    (e: any) => {
+    (e: React.MouseEvent<HTMLDivElement>) => {
       e.stopPropagation();
       toggleExpanded(id);
     },
@@ -202,7 +202,7 @@ const TreeItem = ({
   ]);
 
   const handleCheckboxChange = useCallback(
-    (e: any) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       e.stopPropagation();
 
       if (isCheckboxDisabled) {

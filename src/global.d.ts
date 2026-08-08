@@ -12,10 +12,10 @@ declare global {
   interface Window {
     electron: {
       send: (channel: string, data?: unknown) => void;
-      on: (channel: string, func: (...args: any[]) => void) => unknown;
+      on(channel: string, func: (...args: unknown[]) => void): unknown;
       off: (channel: string) => void;
-      receive: (channel: string, func: (...args: any[]) => void) => void;
-      invoke: (channel: string, data?: unknown) => Promise<any>;
+      receive(channel: string, func: (...args: unknown[]) => void): void;
+      invoke: (channel: string, data?: unknown) => Promise<unknown>;
     };
   }
 }

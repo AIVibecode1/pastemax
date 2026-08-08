@@ -366,7 +366,7 @@ const App = (): JSX.Element => {
       }
     };
 
-    window.electron.on('startup-mode', handleStartupMode);
+    window.electron.on('startup-mode', handleStartupMode as (...args: unknown[]) => void);
 
     return () => {
       window.electron.off('startup-mode');
@@ -614,9 +614,12 @@ const App = (): JSX.Element => {
       }
     };
 
-    window.electron.on('folder-selected', handleFolderSelectedIPC);
-    window.electron.on('file-list-data', handleFileListDataIPC);
-    window.electron.on('file-processing-status', handleProcessingStatusIPC);
+    window.electron.on('folder-selected', handleFolderSelectedIPC as (...args: unknown[]) => void);
+    window.electron.on('file-list-data', handleFileListDataIPC as (...args: unknown[]) => void);
+    window.electron.on(
+      'file-processing-status',
+      handleProcessingStatusIPC as (...args: unknown[]) => void
+    );
 
     return () => {
       window.electron.off('folder-selected');
@@ -784,7 +787,9 @@ const App = (): JSX.Element => {
       { event: 'file-removed', handler: handleFileRemoved },
     ];
 
-    listeners.forEach(({ event, handler }) => window.electron.on(event, handler));
+    listeners.forEach(({ event, handler }) =>
+      window.electron.on(event, handler as (...args: unknown[]) => void)
+    );
 
     return () => {
       listeners.forEach(({ event }) => window.electron.off(event));
@@ -1075,7 +1080,7 @@ const App = (): JSX.Element => {
   // Listen for initial-update-status from main process
   useEffect(() => {
     if (!isElectron) return;
-    const handler = (result: any) => {
+    const handler = (result: unknown) => {
       setInitialAutoUpdateResult(result as UpdateDisplayState);
     };
     window.electron.on('initial-update-status', handler);
@@ -1100,18 +1105,18 @@ const App = (): JSX.Element => {
     }));
 
     try {
-      const result = await window.electron.invoke('check-for-updates');
+      const result = (await window.electron.invoke('check-for-updates')) as UpdateDisplayState;
       setUpdateStatus({
         ...result,
         isLoading: false,
       });
       initialUpdateCheckAttemptedRef.current = true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       setUpdateStatus({
         isLoading: false,
         isUpdateAvailable: false,
         currentVersion: '',
-        error: error?.message || 'Unknown error during IPC invoke',
+        error: error instanceof Error ? error.message : String(error),
         // debugLogs removed: not part of UpdateDisplayState
       });
       initialUpdateCheckAttemptedRef.current = true;

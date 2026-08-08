@@ -138,18 +138,18 @@ export function useIgnorePatterns(selectedFolder: string | null, isElectron: boo
     console.log('Custom ignores:', customIgnores);
 
     try {
-      const result = await window.electron.invoke('get-ignore-patterns', {
+      const result = (await window.electron.invoke('get-ignore-patterns', {
         folderPath: selectedFolder,
         mode: ignoreMode,
         customIgnores: ignoreMode === 'global' ? customIgnores : [],
-      });
+      })) as { patterns?: IgnorePatternsState; error?: string };
       console.log('Received ignore patterns:', result.patterns ? 'success' : 'error', result);
       if (result.error) {
         setIgnorePatternsError(result.error);
       } else {
         console.log('DEBUG: Setting patterns with excludedFiles:', result.patterns?.excludedFiles);
         setIgnorePatterns({
-          ...result.patterns,
+          ...(result.patterns ?? ({} as IgnorePatternsState)),
           excludedFiles: result.patterns?.excludedFiles || [],
         });
       }
