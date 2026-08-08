@@ -46,8 +46,20 @@ function normalizePath(filePath) {
   return filePath.replace(/\\/g, '/');
 }
 
+/**
+ * Platform-independent absolute-path check (same model as the renderer's
+ * pathUtils.isAbsolute): drive-letter paths, leading-backslash UNC paths,
+ * and leading-slash paths are absolute on every OS, so ensureAbsolutePath
+ * never re-resolves them against the cwd on POSIX runners.
+ * @param {string} p - raw (un-normalized) path
+ * @returns {boolean}
+ */
+function isAbsolutePath(p) {
+  return p.startsWith('\\\\') || p.startsWith('/') || /^[A-Za-z]:[\\/]/.test(p);
+}
+
 function ensureAbsolutePath(inputPath) {
-  if (!path.isAbsolute(inputPath)) {
+  if (!isAbsolutePath(inputPath)) {
     inputPath = path.resolve(inputPath);
   }
   return normalizePath(inputPath);

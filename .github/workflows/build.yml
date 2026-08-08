@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Cache electron-builder cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
@@ -81,7 +81,7 @@ jobs:
       # Upload artifacts for each platform
       - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: macos-artifacts
           path: |
@@ -93,7 +93,7 @@ jobs:
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: windows-artifacts
           path: |
@@ -105,7 +105,7 @@ jobs:
 
       - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: linux-artifacts
           path: |
@@ -126,19 +126,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: macos-artifacts
           path: release-artifacts/macos
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: windows-artifacts
           path: release-artifacts/windows
 
       - name: Download Linux artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: linux-artifacts
           path: release-artifacts/linux
