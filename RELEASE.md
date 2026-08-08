@@ -30,6 +30,33 @@ npm run package
 npm run release
 ```
 
+### Releasing This Fork (v1.2.0 and later)
+
+This fork is released from the AIVibecode1 GitHub account. The original project's release flow still applies, plus these steps:
+
+1. Bump the version in `package.json` (for example, `"version": "1.2.0"`).
+2. Update `CHANGELOG.md` with the new version heading and date.
+3. Rebuild the installers and test them:
+
+```bash
+npm run test-build:win
+```
+
+4. Test the built `.exe` files in `release-builds` on your machine (the installer and the portable version).
+5. Commit the version bump and docs, then tag and push:
+
+```bash
+git add -A
+git commit -m "release: v1.2.0"
+git tag v1.2.0
+git push origin master
+git push origin v1.2.0
+```
+
+6. Create the release on GitHub (github.com/AIVibecode1/pastemax/releases/new) and attach the installers from `release-builds`.
+
+Note: the release URL in `electron/update-checker.js` and the badge links in `README.md` must point at the account that publishes the releases. For this fork, that is `AIVibecode1/pastemax`.
+
 ### Platform-Specific Notes
 
 #### macOS

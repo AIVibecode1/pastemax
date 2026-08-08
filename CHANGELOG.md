@@ -1,4 +1,4 @@
-## [Unreleased]
+## [1.2.0] - 2026-08-08
 
 Changes made by AIVibecode on top of the original PasteMax (see README fork notice).
 

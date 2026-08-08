@@ -20,7 +20,7 @@ async function checkForUpdates() {
   try {
     const currentVersion = app.getVersion();
     const GITHUB_API_URL = 'api.github.com';
-    const GITHUB_API_PATH = '/repos/kleneway/pastemax/releases/latest';
+    const GITHUB_API_PATH = '/repos/AIVibecode1/pastemax/releases/latest';
     const USER_AGENT = 'PasteMax-Update-Checker';
 
     const options = {

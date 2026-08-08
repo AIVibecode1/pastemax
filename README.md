@@ -11,15 +11,15 @@
 
 <p align="center">
    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
-   <a href="https://github.com/kleneway/pastemax/issues"><img src="https://img.shields.io/github/issues/kleneway/pastemax" alt="GitHub issues"></a>
-   <a href="https://github.com/kleneway/pastemax/releases/latest"><img src="https://img.shields.io/github/v/release/kleneway/pastemax" alt="GitHub releases"></a>
+   <a href="https://github.com/AIVibecode1/pastemax/issues"><img src="https://img.shields.io/github/issues/AIVibecode1/pastemax" alt="GitHub issues"></a>
+   <a href="https://github.com/AIVibecode1/pastemax/releases/latest"><img src="https://img.shields.io/github/v/release/AIVibecode1/pastemax" alt="GitHub releases"></a>
 </p>
 
 ## Fork Notice
 
 PasteMax was originally created and is maintained by **[kleneway](https://github.com/kleneway)**. The original project lives at [github.com/kleneway/pastemax](https://github.com/kleneway/pastemax) and all credit for the app concept, design, and most of the code goes to the original author.
 
-**This repository is a fork** maintained by [AIVibecode](https://github.com/AIVibecode1). It keeps the original author's work intact and adds fixes, security hardening, performance work, and a visual refresh on top. The improvements in this fork are listed in the next section and in `CHANGELOG.md` under `[Unreleased]`.
+**This repository is a fork** maintained by [AIVibecode](https://github.com/AIVibecode1). It keeps the original author's work intact and adds fixes, security hardening, performance work, and a visual refresh on top. The improvements in this fork are listed in the next section and in `CHANGELOG.md` under `[1.2.0]`.
 
 ## What's New in This Fork
 
@@ -110,14 +110,14 @@ PasteMax is a simple desktop app built for developers using AI coding assistants
 
 ### Download Binary
 
-Download the latest PasteMax version from the [releases page](https://github.com/kleneway/pastemax/releases/latest).
+Download the latest PasteMax version from the [releases page](https://github.com/AIVibecode1/pastemax/releases/latest).
 
 ### Build from Source
 
 1. Clone the repository:
 
 ```
-git clone https://github.com/kleneway/pastemax.git
+git clone https://github.com/AIVibecode1/pastemax.git
 cd pastemax
 ```
 
@@ -146,19 +146,19 @@ After successful build, you'll find the executable files inside the `release-bui
 
 **Windows:**
 
-- `PasteMax Setup 1.0.0.exe` - Installer version
-- `PasteMax 1.0.0.exe` - Portable version
+- `PasteMax Setup 1.2.0.exe` - Installer version
+- `PasteMax 1.2.0.exe` - Portable version
 
 **Mac:**
 
-- `PasteMax 1.0.0.dmg` - Installer version
-- `PasteMax 1.0.0.zip` - Portable version
+- `PasteMax 1.2.0.dmg` - Installer version
+- `PasteMax 1.2.0.zip` - Portable version
 
 **Linx:**
 
-- `PasteMax 1.0.0.deb` - Installer version (Deb package)
-- `PasteMax 1.0.0.rpm` - Installer version (RPM package)
-- `PasteMax 1.0.0.AppImage` - Portable version
+- `PasteMax 1.2.0.deb` - Installer version (Deb package)
+- `PasteMax 1.2.0.rpm` - Installer version (RPM package)
+- `PasteMax 1.2.0.AppImage` - Portable version
 
 ## Development
 
@@ -255,7 +255,7 @@ If you encounter an "App not responding" message on Mac, it may be due to macOS 
 
 ### Other Issues
 
-If you encounter other issues, please [report them on GitHub](https://github.com/kleneway/pastemax/issues).
+If you encounter other issues, please [report them on GitHub](https://github.com/AIVibecode1/pastemax/issues).
 
 ## License
 
@@ -273,6 +273,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Star History ⭐
 
-[![Star History Chart](https://api.star-history.com/svg?repos=kleneway/pastemax&type=Date)](https://www.star-history.com/#kleneway/pastemax&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=AIVibecode1/pastemax&type=Date)](https://www.star-history.com/#AIVibecode1/pastemax&Date)
 
 ---
