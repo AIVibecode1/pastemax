@@ -15,6 +15,55 @@
    <a href="https://github.com/kleneway/pastemax/releases/latest"><img src="https://img.shields.io/github/v/release/kleneway/pastemax" alt="GitHub releases"></a>
 </p>
 
+## Fork Notice
+
+PasteMax was originally created and is maintained by **[kleneway](https://github.com/kleneway)**. The original project lives at [github.com/kleneway/pastemax](https://github.com/kleneway/pastemax) and all credit for the app concept, design, and most of the code goes to the original author.
+
+**This repository is a fork** maintained by [AIVibecode](https://github.com/AIVibecode1). It keeps the original author's work intact and adds fixes, security hardening, performance work, and a visual refresh on top. The improvements in this fork are listed in the next section and in `CHANGELOG.md` under `[Unreleased]`.
+
+## What's New in This Fork
+
+This fork focuses on three things: fixing real bugs, making the app safer, and making it faster. The full detail is in `CHANGELOG.md`; here is the short version.
+
+**Bugs fixed**
+
+- Your instructions are now placed at the TOP of the copied content, as the app always intended. Before, they were appended at the end.
+- Closing the window during a folder scan no longer leaves the app stuck for minutes.
+- Corrupt saved data can no longer make the app show a blank screen.
+- The task type you selected is restored when you reopen the app.
+- Files like `foo.app.js` are no longer wrongly skipped by the macOS bundle check.
+- Scan failures now show a real error instead of a false "Found 0 files".
+
+**Security**
+
+- The renderer can only use a small whitelist of internal channels.
+- The app refuses to open file, data, and about links in new windows.
+- Production now runs a strict Content-Security-Policy.
+- The app only scans folders you actually picked with the folder dialog.
+
+**Performance**
+
+- Reopening a folder skips re-reading files that did not change.
+- The file tree no longer rebuilds completely when you expand or collapse.
+- Copy formatting runs off the UI thread, so huge copies do not freeze the window.
+- The model list loads once instead of on every selection.
+
+**Dependencies**
+
+- Electron bumped from 40 (end of life) to 43.3.0.
+- `npm audit` went from 30 to 6 findings, all of which need a separate breaking upgrade.
+
+**Quality**
+
+- 81 automated tests now guard the core logic.
+- The app now lives in a git repository with a clean commit history.
+- `App.tsx` was split into focused hooks and is about 300 lines smaller.
+
+**Visual refresh**
+
+- Self-hosted Geist fonts (no Google Fonts requests).
+- Refined color palette, consistent focus rings for keyboard users, and tabular numbers in token counts.
+
 ## Overview
 
 PasteMax is a simple desktop app built for developers using AI coding assistants. It makes sharing your code with LLMs easy, thanks to a smart file explorer with token counting, file filtering, quick copy, and a previewer. Select the files you need, skip binaries and junk, and get clean, formatted snippets ready for your LLM.
@@ -128,6 +177,28 @@ npm run dev
 
 # In a separate terminal, start Electron
 npm run dev:electron
+```
+
+On newer npm versions (11+), the install step may block the Electron binary download. If `electron.exe` is missing after `npm install`, run:
+
+```
+npm install-scripts approve electron esbuild electron-winstaller
+```
+
+### Testing
+
+Run the automated test suite:
+
+```
+npm test
+```
+
+Quality gates used during development:
+
+```
+npm run typecheck
+npm run lint
+npm run build
 ```
 
 ### Building for Production

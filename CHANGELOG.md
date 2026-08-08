@@ -1,3 +1,66 @@
+## [Unreleased]
+
+Changes made by AIVibecode on top of the original PasteMax (see README fork notice).
+
+### Security
+
+- **IPC whitelist**: the renderer can now only send, receive, and invoke on a small whitelist of channels. The old unguarded `ipcRenderer` bridge was removed.
+- **Navigation deny-by-default**: `file:`, `data:`, `about:` and custom schemes can no longer navigate or open new windows that would inherit the app's preload.
+- **Strict production CSP**: `script-src 'unsafe-inline'` removed from the production policy; fonts are self-hosted so `font-src` is `'self'` only.
+- **Folder-consent boundary**: the main process only scans folders the user confirmed through the folder picker (persisted across restarts). A compromised renderer can no longer request scans of arbitrary paths.
+- **Error sanitization**: error stacks and raw API response bodies are no longer shipped to the renderer; the update modal no longer displays debug logs.
+
+### Fixed
+
+- **User instructions placement**: the copied content now puts `<user_instructions>` at the TOP as the 1.1.1 changelog intended. The drifted duplicate formatter was deleted and the copy path is covered by tests.
+- **Scan cancellation**: closing the window mid-scan cancels the scan immediately instead of leaving the app busy for minutes.
+- **`.app` bundle detection**: only real macOS bundle paths are skipped; files like `foo.app.js` are no longer silently dropped.
+- **localStorage safety**: corrupt or oversized stored data can no longer white-screen the app; all reads/writes are guarded and validated.
+- **Task type restore**: the selected task type is restored on launch instead of resetting to None.
+- **WSL path detection**: `isWSLPath` now matches normalized paths, fixing the WSL folder picker shortcut and case-insensitive comparisons.
+- **Update check robustness**: HTTP requests are time-bounded (10s) and transient errors are no longer cached as if they were real results.
+- **Scan error reporting**: a failure to read the root folder reports a real error instead of a false "Found 0 files".
+- **IPC listener cleanup**: `removeListener` actually removes the registered wrapper now.
+- **Copy history quota**: a full localStorage quota no longer makes the copy button report failure; history drops oldest entries first.
+- **Electron lifecycle**: quit handlers no longer rely on un-awaited async listeners.
+
+### Performance
+
+- **File cache across scans**: re-opening a folder skips re-reading unchanged files (validated per-file by mtime and size).
+- **Sidebar tree**: expand/collapse no longer rebuilds the whole tree; binary detection is computed bottom-up in one pass.
+- **Model list**: fetched once on launch instead of on every selection change.
+- **Formatting worker**: copy content is formatted in a Web Worker so megabyte-scale concatenation never blocks the UI thread (with a synchronous fallback).
+- **Global ignore filter**: precompiled once instead of rebuilt per file during scans.
+- **Status IPC throttling**: directory progress messages are capped at one per 200ms.
+
+### Dependencies
+
+- Electron 40 (EOL, 30 unfixed advisories) bumped to **43.3.0** (current stable).
+- electron-builder bumped to 26.15.3, fixing the AppImage code-execution advisory (GHSA-7g7r-gx96-252g).
+- `npm audit` reduced from 30 to 6 high findings (the remainder requires a breaking typescript-eslint major, recorded as deferred).
+- Pruned unused/at-risk packages: `gpt-3-encoder`, `lodash`, `node-fetch` (debounce moved to `electron/utils.js`).
+
+### Refactored
+
+- `App.tsx` decomposed: workspace state/CRUD extracted into `useWorkspaces`, the copy pipeline (worker, token counting, content assembly) into `useCopyPipeline`, storage keys into `src/utils/storageKeys.ts`. App.tsx went from 2,064 to ~1,770 lines.
+- **Single ignore-patterns instance**: the ignore modal now shares App's hook state instead of a private copy, and ignore changes apply via a targeted re-scan instead of a full page reload (selection and expanded state survive mode switches).
+- Deleted dead code: `electron/renderer.js`, `electron/backup/OldMain.js`, `src/styles/backup/`, the disabled release workflow, the no-op `ignore-mode-updated` listener, `isFileInFolder` (replaced by `isSubPath`), `fileTreeUtils.ts`, and orphaned type exports.
+
+### Testing & Tooling
+
+- Git repository initialized (the project had no version control); baseline commit `e3d9dd6`.
+- **vitest** test infrastructure with 81 characterization/unit tests covering path utils, content formatting, storage safety, file-cache freshness, ignore-filter equivalence, and folder consent.
+- CI quality gates: the build workflow now runs typecheck and strict lint before packaging.
+- Lint warnings reduced from 10 to 7 (all pre-existing classes; residual list recorded in plan 029).
+
+### UI / Visual
+
+- Self-hosted **Geist + Geist Mono** variable fonts (no Google Fonts network requests).
+- Refined palette: off-black text, single tuned accent, hue-consistent grays, tinted shadows, desaturated status colors (WCAG AA contrast spot-checks recorded in `plans/031-ui-redesign-diagnosis.md`).
+- Tabular figures for token and file counts; global `:focus-visible` keyboard rings; 12 inline styles migrated to classes; modal z-index values tokenized.
+
+---
+
 ## [1.1.1] - 2025-02-09
 
 ### Added
