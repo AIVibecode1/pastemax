@@ -1,3 +1,8 @@
+> **Superseded (2026-08)**. This document describes the original offshore design
+> palette and layout notes. The live design system is the CSS-variable token set
+> in `src/styles/index.css` (introduced and refined by plan 031). Keep this file
+> only as historical reference; do not implement new UI from it.
+
 **Overall Application Structure**
 
 The application window is divided into two main vertical sections:

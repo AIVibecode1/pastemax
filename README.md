@@ -201,6 +201,10 @@ npm run lint
 npm run build
 ```
 
+### For AI / agent contributors
+
+Agent / AI contributors: see [AGENTS.md](./AGENTS.md) for verification commands, design-system rules, and architecture constraints.
+
 ### Building for Production
 
 To build the application for production:
