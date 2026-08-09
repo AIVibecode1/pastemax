@@ -6,13 +6,27 @@
   background-color: var(--background-secondary);
 }
 
-.tree-empty,
-.tree-loading {
-  padding: 16px;
+.tree-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl);
   text-align: center;
   color: var(--text-secondary);
-  font-size: 14px;
-  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+
+/* Center the composed empty state inside the scrolling tree area */
+.file-tree .tree-empty {
+  height: 100%;
+}
+
+/* The no-folder empty state sits directly in the sidebar (flex column) and
+   fills the remaining height so it centers vertically. */
+.sidebar > .tree-empty {
+  flex: 1;
 }
 
 /* Inline icon inside the empty-tree sentence (plan 031) */
@@ -27,6 +41,10 @@
   justify-content: center;
   padding: 24px 16px;
   gap: 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-style: italic;
 }
 
 .tree-loading .spinner {

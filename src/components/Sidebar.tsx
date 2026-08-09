@@ -4,7 +4,7 @@ import { SidebarProps, TreeNode } from '../types/FileTypes';
 import SearchBar from './SearchBar';
 import TreeItem from './TreeItem';
 import TaskTypeSelector from './TaskTypeSelector';
-import { ListChecks, ListX } from 'lucide-react';
+import { ListChecks, ListX, FolderOpen, Search } from 'lucide-react';
 import ExpandAllIcon from './base/ExpandAllIcon';
 import CollapseAllIcon from './base/CollapseAllIcon';
 
@@ -455,7 +455,11 @@ const Sidebar = ({
         isTreeBuildingComplete ? (
           <div className="file-tree" ref={treeScrollRef}>
             {visibleTree.length === 0 ? (
-              <div className="tree-empty">No files match your search.</div>
+              <div className="tree-empty">
+                <Search size={36} className="empty-state-icon" aria-hidden="true" />
+                <div className="empty-state-title">No matching files</div>
+                <div className="empty-state-hint">Try a different search term.</div>
+              </div>
             ) : (
               <div
                 style={{
@@ -474,7 +478,11 @@ const Sidebar = ({
           </div>
         )
       ) : (
-        <div className="tree-empty">No files found in this folder.</div>
+        <div className="tree-empty">
+          <FolderOpen size={36} className="empty-state-icon" aria-hidden="true" />
+          <div className="empty-state-title">No folder open</div>
+          <div className="empty-state-hint">Open a folder to start selecting files.</div>
+        </div>
       )}
 
       <div

@@ -35,3 +35,23 @@
   font-size: 13px;
   margin-top: 4px;
 }
+
+/* ===== Plan 034: composed empty states ===== */
+
+/* Shared empty-state composition: icon + title + hint, centered. */
+.empty-state-icon {
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-bottom: var(--space-xs);
+}
+
+.empty-state-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.empty-state-hint {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}

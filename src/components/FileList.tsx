@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { FileListProps, FileData } from '../types/FileTypes';
 import FileCard from './FileCard';
 import FilePreviewModal from './FilePreviewModal';
+import { Files, FolderOpen } from 'lucide-react';
 import { arePathsEqual } from '../utils/pathUtils';
 
 // Add proper memoization to avoid unnecessary re-renders
@@ -131,9 +132,19 @@ const FileList = ({ files, selectedFiles, toggleFileSelection }: FileListProps) 
         </div>
       ) : (
         <div className="file-list-empty">
-          {files.length > 0
-            ? 'No files selected. Select files from the sidebar.'
-            : 'Select a folder to view files'}
+          {files.length > 0 ? (
+            <>
+              <Files size={36} className="empty-state-icon" aria-hidden="true" />
+              <div className="empty-state-title">No files selected</div>
+              <div className="empty-state-hint">Select files in the sidebar to build your prompt.</div>
+            </>
+          ) : (
+            <>
+              <FolderOpen size={36} className="empty-state-icon" aria-hidden="true" />
+              <div className="empty-state-title">No folder open</div>
+              <div className="empty-state-hint">Select a folder to view files.</div>
+            </>
+          )}
         </div>
       )}
       <FilePreviewModal

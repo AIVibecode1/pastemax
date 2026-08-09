@@ -28,14 +28,15 @@
 
 .file-list-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-sm);
   height: 100%;
   color: var(--text-secondary);
-  font-size: 16px;
-  padding: 32px;
+  font-size: var(--font-size-md);
+  padding: var(--space-xl);
   text-align: center;
-  font-style: italic;
 }
 
 /* Inline icon inside the empty-file-list sentence (plan 031) */
