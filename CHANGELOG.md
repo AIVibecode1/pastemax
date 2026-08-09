@@ -1,3 +1,18 @@
+## [1.3.0] - 2026-08-09
+
+Changes made by AIVibecode on top of the original PasteMax (see README fork notice).
+
+### Performance
+
+- **Virtualized file tree**: the sidebar now renders only the rows you can see, so very large folders stay responsive.
+- **Virtualized file list**: selected files render as a virtualized grid; only the visible cards exist in the DOM.
+
+### Internal
+
+- **Type safety**: all remaining `any` escape hatches removed (tree selection, sidebar resize, update checking, and the Electron bridge) so future changes are caught at build time.
+- **Tests**: 11 new characterization tests for the tree component and the copy pipeline (92 total).
+- **Agent guide**: `AGENTS.md` added; the historical `docs/design.md` is marked superseded.
+
 ## [1.2.0] - 2026-08-08
 
 Changes made by AIVibecode on top of the original PasteMax (see README fork notice).

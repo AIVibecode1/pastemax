@@ -19,11 +19,22 @@
 
 PasteMax was originally created and is maintained by **[kleneway](https://github.com/kleneway)**. The original project lives at [github.com/kleneway/pastemax](https://github.com/kleneway/pastemax) and all credit for the app concept, design, and most of the code goes to the original author.
 
-**This repository is a fork** maintained by [AIVibecode](https://github.com/AIVibecode1). It keeps the original author's work intact and adds fixes, security hardening, performance work, and a visual refresh on top. The improvements in this fork are listed in the next section and in `CHANGELOG.md` under `[1.2.0]`.
+**This repository is a fork** maintained by [AIVibecode](https://github.com/AIVibecode1). It keeps the original author's work intact and adds fixes, security hardening, performance work, and a visual refresh on top. The improvements in this fork are listed in the next section and in `CHANGELOG.md` under `[1.3.0]` and `[1.2.0]`.
 
 ## What's New in This Fork
 
 This fork focuses on three things: fixing real bugs, making the app safer, and making it faster. The full detail is in `CHANGELOG.md`; here is the short version.
+
+**In 1.3.0**
+
+**Performance**
+
+- The file tree and the selected-file list are now virtualized: only the visible rows are rendered, so huge repositories stay smooth.
+
+**Quality**
+
+- 92 automated tests (11 new, covering the tree component and the copy pipeline).
+- All remaining loose `any` types removed; the Electron bridge is fully typed, so future changes are caught at build time instead of at runtime.
 
 **Bugs fixed**
 

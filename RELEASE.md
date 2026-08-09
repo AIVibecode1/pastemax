@@ -36,16 +36,16 @@ This fork is released from the AIVibecode1 GitHub account. The `.github/workflow
 
 The steps are:
 
-1. Bump the version in `package.json` (for example, `"version": "1.2.0"`).
+1. Bump the version in `package.json` (for example, `"version": "1.3.0"`).
 2. Update `CHANGELOG.md` with the new version heading and date.
 3. Commit and push the code, then push the tag:
 
 ```bash
 git add -A
-git commit -m "release: v1.2.0"
+git commit -m "release: v1.3.0"
 git push origin master
-git tag v1.2.0
-git push origin v1.2.0
+git tag v1.3.0
+git push origin v1.3.0
 ```
 
 4. Wait for the "Build and Release" workflow to finish (about 15-25 minutes, three platforms in parallel). You can watch it under the Actions tab.

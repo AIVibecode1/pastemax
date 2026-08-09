@@ -116,16 +116,16 @@ console.log('\n📝 Next steps:');
 if (platform === 'darwin') {
   console.log('- To test the macOS app: open release-builds/PasteMax.app');
   console.log('- To create a GitHub release, tag your commit and push:');
-  console.log('  git tag v1.2.0');
-  console.log('  git push origin v1.2.0');
+  console.log('  git tag v1.3.0');
+  console.log('  git push origin v1.3.0');
 } else if (platform === 'win32') {
   console.log('- To test the Windows app: run release-builds\\PasteMax.exe');
   console.log('- To create a GitHub release, tag your commit and push:');
-  console.log('  git tag v1.2.0');
-  console.log('  git push origin v1.2.0');
+  console.log('  git tag v1.3.0');
+  console.log('  git push origin v1.3.0');
 } else {
   console.log('- To test the Linux app: run the AppImage in release-builds/');
   console.log('- To create a GitHub release, tag your commit and push:');
-  console.log('  git tag v1.2.0');
-  console.log('  git push origin v1.2.0');
+  console.log('  git tag v1.3.0');
+  console.log('  git push origin v1.3.0');
 }
