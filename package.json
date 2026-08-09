@@ -139,6 +139,7 @@
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "@tanstack/react-virtual": "^3.14.9",
     "chokidar": "^3.6.0",
     "ignore": "^7.0.3",
     "lucide-react": "^0.477.0",

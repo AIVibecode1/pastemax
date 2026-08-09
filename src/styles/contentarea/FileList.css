@@ -13,12 +13,17 @@
   flex: 1; /* Allow list itself to grow */
   overflow-y: auto; /* Enable vertical scrolling */
   padding: 16px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Responsive grid */
-  grid-auto-rows: max-content; /* Adjust row height to content */
-  align-content: start; /* Align items to the top */
-  gap: 12px;
   background-color: var(--background-primary);
+}
+
+/* One virtualized grid row of file cards (plan 033). The column count is
+   derived at runtime to mirror the previous auto-fill grid; the row keeps the
+   card spacing (12px gap) and fixed card height (80px + gap = 92px rows). */
+.file-list-row {
+  display: grid;
+  grid-template-columns: repeat(var(--file-list-cols, 1), minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .file-list-empty {

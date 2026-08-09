@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { SidebarProps, TreeNode } from '../types/FileTypes';
 import SearchBar from './SearchBar';
 import TreeItem from './TreeItem';
@@ -321,34 +322,58 @@ const Sidebar = ({
   // Memoize the flattened tree to avoid unnecessary recalculations
   const visibleTree = useMemo(() => flattenTree(filteredTree), [filteredTree, flattenTree]);
 
-  // Memoize the rendered tree items to avoid unnecessary re-renders
-  const renderedTreeItems = useMemo(() => {
-    if (visibleTree.length === 0) {
-      return <div className="tree-empty">No files match your search.</div>;
-    }
+  // Virtualize the flat tree: only a window of rows is mounted in the DOM
+  // (plan 033). Row height is effectively fixed by .tree-item (padding 8px,
+  // single-line name, 2px vertical margin) - ~40px including spacing.
+  const treeScrollRef = useRef<HTMLDivElement | null>(null);
 
-    return visibleTree.map((node: TreeNode) => (
-      <TreeItem
-        key={node.id}
-        node={node}
-        selectedFiles={selectedFiles}
-        toggleFileSelection={toggleFileSelection}
-        toggleFolderSelection={toggleFolderSelection}
-        toggleExpanded={toggleExpanded}
-        includeBinaryPaths={includeBinaryPaths}
-        selectedFolderNode={selectedFolderNode}
-        setSelectedFolderNode={setSelectedFolderNode}
-      />
-    ));
-  }, [
-    visibleTree,
-    selectedFiles,
-    toggleFileSelection,
-    toggleFolderSelection,
-    toggleExpanded,
-    selectedFolderNode,
-    setSelectedFolderNode,
-  ]);
+  const treeVirtualizer = useVirtualizer({
+    count: visibleTree.length,
+    getScrollElement: () => treeScrollRef.current,
+    estimateSize: () => 40,
+    overscan: 8,
+  });
+
+  // Memoize the rendered tree items to avoid unnecessary re-renders
+  const renderedTreeItems = useMemo(
+    () =>
+      treeVirtualizer.getVirtualItems().map((virtualRow) => {
+        const node = visibleTree[virtualRow.index];
+        return (
+          <div
+            key={node.id}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start}px)`,
+            }}
+          >
+            <TreeItem
+              node={node}
+              selectedFiles={selectedFiles}
+              toggleFileSelection={toggleFileSelection}
+              toggleFolderSelection={toggleFolderSelection}
+              toggleExpanded={toggleExpanded}
+              includeBinaryPaths={includeBinaryPaths}
+              selectedFolderNode={selectedFolderNode}
+              setSelectedFolderNode={setSelectedFolderNode}
+            />
+          </div>
+        );
+      }),
+    [
+      treeVirtualizer,
+      visibleTree,
+      selectedFiles,
+      toggleFileSelection,
+      toggleFolderSelection,
+      toggleExpanded,
+      selectedFolderNode,
+      setSelectedFolderNode,
+    ]
+  );
 
   return (
     <div className="sidebar" style={{ width: `${sidebarWidth}px` }}>
@@ -428,7 +453,20 @@ const Sidebar = ({
 
       {allFiles.length > 0 ? (
         isTreeBuildingComplete ? (
-          <div className="file-tree">{renderedTreeItems}</div>
+          <div className="file-tree" ref={treeScrollRef}>
+            {visibleTree.length === 0 ? (
+              <div className="tree-empty">No files match your search.</div>
+            ) : (
+              <div
+                style={{
+                  height: treeVirtualizer.getTotalSize(),
+                  position: 'relative',
+                }}
+              >
+                {renderedTreeItems}
+              </div>
+            )}
+          </div>
         ) : (
           <div className="tree-loading">
             <div className="spinner"></div>

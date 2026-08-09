@@ -1,5 +1,6 @@
 // src/components/FileList.tsx
-import { useState, useMemo, useCallback } from 'react'; // Add useCallback
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { FileListProps, FileData } from '../types/FileTypes';
 import FileCard from './FileCard';
 import FilePreviewModal from './FilePreviewModal';
@@ -47,23 +48,87 @@ const FileList = ({ files, selectedFiles, toggleFileSelection }: FileListProps) 
     setActivePreviewFile('');
   }, []);
 
-  // Memoize the rendered file cards to prevent unnecessary re-renders
-  const renderedFileCards = useMemo(() => {
-    return displayableFiles.map((file: FileData) => (
-      <FileCard
-        key={file.path}
-        file={file}
-        isSelected={true} // All displayed files are selected
-        toggleSelection={toggleFileSelection}
-        onPreview={handlePreview} // Pass the preview handler
-      />
-    ));
-  }, [displayableFiles, toggleFileSelection, handlePreview]);
+  // Virtualize the card grid by rows (plan 033): FileCard has a fixed height
+  // (80px), so a row is 92px incl. the 12px grid gap. The column count mirrors
+  // the CSS auto-fill formula `repeat(auto-fill, minmax(220px, 1fr))` so the
+  // visual grid is unchanged - only the mounted DOM window shrinks.
+  const fileListRef = useRef<HTMLDivElement | null>(null);
+  const [fileListWidth, setFileListWidth] = useState(0);
+
+  useEffect(() => {
+    const el = fileListRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      setFileListWidth(entries[0]?.contentRect.width ?? 0);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [displayableFiles.length > 0]);
+
+  const fileListColumns = Math.max(1, Math.floor((fileListWidth + 12) / 232)); // minmax 220px + 12px gap
+
+  const fileRows = useMemo(() => {
+    const rows: FileData[][] = [];
+    for (let i = 0; i < displayableFiles.length; i += fileListColumns) {
+      rows.push(displayableFiles.slice(i, i + fileListColumns));
+    }
+    return rows;
+  }, [displayableFiles, fileListColumns]);
+
+  const fileListVirtualizer = useVirtualizer({
+    count: fileRows.length,
+    getScrollElement: () => fileListRef.current,
+    estimateSize: () => 92,
+    overscan: 4,
+  });
+
+  const renderedFileRows = useMemo(
+    () =>
+      fileListVirtualizer.getVirtualItems().map((virtualRow) => {
+        const row = fileRows[virtualRow.index];
+        return (
+          <div
+            key={virtualRow.index}
+            className="file-list-row"
+            style={
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+                '--file-list-cols': fileListColumns,
+              } as React.CSSProperties
+            }
+          >
+            {row.map((file: FileData) => (
+              <FileCard
+                key={file.path}
+                file={file}
+                isSelected={true} // All displayed files are selected
+                toggleSelection={toggleFileSelection}
+                onPreview={handlePreview}
+              />
+            ))}
+          </div>
+        );
+      }),
+    [fileListVirtualizer, fileRows, fileListColumns, toggleFileSelection, handlePreview]
+  );
 
   return (
     <div className="file-list-container">
       {displayableFiles.length > 0 ? (
-        <div className="file-list">{renderedFileCards}</div>
+        <div className="file-list" ref={fileListRef}>
+          <div
+            style={{
+              height: fileListVirtualizer.getTotalSize(),
+              position: 'relative',
+            }}
+          >
+            {renderedFileRows}
+          </div>
+        </div>
       ) : (
         <div className="file-list-empty">
           {files.length > 0
